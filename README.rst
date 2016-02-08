@@ -20,6 +20,8 @@ each API, as well as provide format verifications of these objects.
 Klue Client-Server relies on bravado-core for marshaling/unmarshaling and
 format validation.
 
+The generated client library support both synchronous and asynchronous/parallel
+calls using grequests.
 
 Disclaimer
 ----------
@@ -135,4 +137,18 @@ Calling that server now looks like (assuming the server api is called 'public'):
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
-    version = ApiPool().public.version()
+    version = ApiPool().public.version().call()
+
+To call multiple server endpoints in parallel:
+
+.. code-block:: python
+
+    from klue.swagger import ApiPool
+    from klue.swagger.client import async_call
+
+    # Call two endpoints in parallel:
+    [result_version, result_login]
+        = async_call(
+             ApiPool().public.version(),
+             ApiPool().login.login(credentials),
+        )
