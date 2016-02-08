@@ -15,7 +15,7 @@ class EndpointData():
     method = None
     handler_server = None
     handler_client = None
-    has_auth = True
+    decorate_server = None
     operation = None
 
     param_in_body = False
@@ -106,13 +106,9 @@ class ApiSpec():
                 if 'x-bind-client' in op_spec:
                     data.handler_client = op_spec['x-bind-client']
 
-                # Does this method require authentication?
-                has_auth = True
-                if 'x-auth-required' in op_spec:
-                    has_auth = op_spec['x-auth-required']
-                    if type(has_auth).__name__ != 'bool':
-                        raise Exception("Swagger api contains x-auth-required without boolean value at %s %s" % (method, path))
-                data.has_auth = has_auth
+                # Should we decorate the server handler?
+                if 'x-decorate-server' in op_spec:
+                     data.decorate_server = op_spec['x-decorate-server']
 
                 # Generate a bravado-core operation object
                 data.operation = Operation.from_spec(self.spec, path, method, op_spec)

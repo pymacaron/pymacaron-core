@@ -13,6 +13,26 @@ from bravado_core.request import IncomingRequest, unmarshal_request
 log = logging.getLogger(__name__)
 
 
+def get_function(pkgpath):
+    """Take a full path to a python method, for example mypkg.subpkg.method and
+    return the method (after importing the required packages)
+    """
+    # Extract the module and function name from pkgpath
+    elems = pkgpath.split('.')
+    if len(elems) <= 1:
+        raise Exception("Path %s is too short. Should be at least module.func." % elems)
+    func_name = elems[-1]
+    func_module = '.'.join(elems[0:-1])
+
+    # Load the function's module and get the function
+    try:
+        m = import_module(func_module)
+        f = getattr(m, func_name)
+        return f
+    except Exception as e:
+        raise Exception("Failed to import %s: " % pkgpath + str(e))
+
+
 # TODO: add authentication when relevant
 # TODO: support in-query parameters
 def spawn_server_api(app, api_spec):
@@ -25,16 +45,7 @@ def spawn_server_api(app, api_spec):
     """
 
     def mycallback(endpoint):
-        # Extract the module and function name of the endpoint implementation
-        elems = endpoint.handler_server.split('.')
-        if len(elems) <= 1:
-            raise Exception("Path in x-bind-method is too short. Should be at least module.func [%s]" % elems)
-        handler_func_name = elems[-1]
-        handler_module = '.'.join(elems[0:-1])
-
-        # Load the handler's module and get the handler function
-        m = import_module(handler_module)
-        handler_func = getattr(m, handler_func_name)
+        handler_func = get_function(endpoint.handler_server)
 
         # Generate api endpoint around that handler
         handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func)
@@ -50,27 +61,21 @@ def spawn_server_api(app, api_spec):
 
 def _generate_handler_wrapper(api_spec, endpoint, handler_func):
     """Generate a handler method for the given url method+path and operation"""
-    # Note: keep only simple variables, no complex structures, in this anonymous
-    # function, otherwise we'll explode the runtime memory
-    has_auth = endpoint.has_auth
-    operation = endpoint.operation
+
+    # Decorate the handler function, if Swagger spec tells us to
+    if endpoint.decorate_server:
+        decorator = get_function(endpoint.decorate_server)
+        handler_func = decorator(handler_func)
 
     def handler_wrapper():
         log.info("Calling %s" % handler_func.__name__)
-
-#         # Authenticate user if we need to
-#         if has_auth:
-#             try:
-#                 authenticate_http_request()
-#             except KlueException as e:
-#                 return e.http_reply()
 
         req = FlaskRequestProxy(request)
 
         try:
             # Note: unmarshall validates parameters but does not fail
             # if extra unknown parameters are submitted
-            parameters = unmarshal_request(req, operation)
+            parameters = unmarshal_request(req, endpoint.operation)
             # Example of parameters: {'body': RegisterCredentials()}
         except jsonschema.exceptions.ValidationError as e:
             new_e = ValidationError(str(e))
