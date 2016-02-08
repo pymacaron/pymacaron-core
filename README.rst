@@ -13,7 +13,7 @@ client calls to a number of other services nearby.
 Given a set of Swagger specifications describing the APIs of these services,
 Klue Client-Server will populate a Flask app with auto-generated server
 endpoints for all specified routes, as well as generate client libraries for
-every client API. Both client and server stubs handles marshaling/unmarshaling
+every client API. Both client and server stubs handle marshaling/unmarshaling
 of json documents to and from objects modeled upon the Swagger definitions for
 each API, as well as provide format verifications of these objects.
 
