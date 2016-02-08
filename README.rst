@@ -102,8 +102,11 @@ Implement the 'do_login' endpoint:
             # Instantiate Welcome and return it
             return Welcome(message="Welcome!")
         else:
-            # Rise an error, to be converted into an Error object
-            raise KlueException("Failed to authenticate user")
+            # Rise an error in the API's error format, directly as
+            # a Flask response object
+            r = jsonify({'error': 'INVALID_CREDENTIALS'})
+            r.status_code = 401
+            return r
 
 
 Usage - Generating Client
