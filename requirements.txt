@@ -1,0 +1,11 @@
+mock
+nose
+flask
+requests
+pep8
+six
+bravado-core==4.0.1
+responses
+pyyaml
+gevent
+grequests
