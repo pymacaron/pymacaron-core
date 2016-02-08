@@ -152,3 +152,10 @@ To call multiple server endpoints in parallel:
              ApiPool().public.version(),
              ApiPool().login.login(credentials),
         )
+
+Install
+-------
+
+.. code-block:: shell
+
+    pip install -i https://testpypi.python.org/pypi klue-client-server
