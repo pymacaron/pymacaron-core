@@ -84,14 +84,6 @@ class ApiSpec():
             for method, op_spec in d.items():
                 data = EndpointData(path, method)
 
-                # Make sure that endpoint only produces 'application/json'
-                if 'produces' not in op_spec:
-                    raise Exception("Swagger api has no 'produces' section for %s %s" % (method, path))
-                if len(op_spec['produces']) != 1:
-                    raise Exception("Expecting only one type under 'produces' for %s %s" % (method, path))
-                if 'application/json' not in op_spec['produces']:
-                    raise Exception("Only 'application/json' is supported. See %s %s" % (method, path))
-
                 # Which server method handles this endpoint?
                 if 'x-bind-server' not in op_spec:
                     if 'x-no-bind-server' in op_spec:
@@ -101,6 +93,14 @@ class ApiSpec():
                     else:
                         raise Exception("Swagger api defines no x-bind-server for %s %s" % (method, path))
                 data.handler_server = op_spec['x-bind-server']
+
+                # Make sure that endpoint only produces 'application/json'
+                if 'produces' not in op_spec:
+                    raise Exception("Swagger api has no 'produces' section for %s %s" % (method, path))
+                if len(op_spec['produces']) != 1:
+                    raise Exception("Expecting only one type under 'produces' for %s %s" % (method, path))
+                if 'application/json' not in op_spec['produces']:
+                    raise Exception("Only 'application/json' is supported. See %s %s" % (method, path))
 
                 # Which client method handles this endpoint?
                 if 'x-bind-client' in op_spec:
