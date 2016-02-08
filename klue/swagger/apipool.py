@@ -1,6 +1,5 @@
 import pprint
 import yaml
-from klue.log import get_logger
 from klue.swagger.api import API
 from bravado_core.spec import Spec
 

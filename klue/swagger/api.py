@@ -53,7 +53,7 @@ class API():
         """An API Specification"""
 
         if yaml_path:
-            get_logger().info("Loading swagger file at %s" % yaml_path)
+            log.info("Loading swagger file at %s" % yaml_path)
             swagger_dict = yaml.load(open(yaml_path))
         elif yaml_str:
             swagger_dict = yaml.load(yaml_str)
