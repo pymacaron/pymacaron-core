@@ -9,7 +9,7 @@ from bravado_core.response import unmarshal_response, OutgoingResponse
 log = logging.getLogger(__name__)
 
 
-def generate_client_callers(spec):
+def generate_client_callers(spec, timeout=10):
     """Return a dict mapping method names to anonymous functions that
     will call the server's endpoint of the corresponding name as
     described in the api defined by the swagger dict and bravado spec"""
@@ -22,7 +22,7 @@ def generate_client_callers(spec):
 
         log.info("Generating client for %s %s" % (endpoint.method, endpoint.path))
 
-        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint)
+        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout)
 
     spec.call_on_each_endpoint(mycallback)
 
@@ -30,16 +30,12 @@ def generate_client_callers(spec):
 
 
 
-def _generate_client_caller(spec, endpoint):
+def _generate_client_caller(spec, endpoint, timeout):
 
     url = "%s://%s:%s/%s" % (spec.protocol,
                              spec.host,
                              spec.port,
                              endpoint.path)
-
-    # TODO: make timeout a config param
-    # timeout = get_config().request_timeout
-    timeout = 10
 
     def client(*args, **kwargs):
         """Call the server endpoint and handle marshaling/unmarshaling of parameters/result.

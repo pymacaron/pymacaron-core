@@ -39,7 +39,6 @@ class ApiSpec():
     protocol = None
     version = None
 
-
     def __init__(self, swagger_dict):
         self.swagger_dict = swagger_dict
         self.spec = Spec.from_dict(self.swagger_dict,

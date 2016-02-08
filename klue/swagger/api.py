@@ -46,6 +46,9 @@ class API():
     # Object holding constructors for the API's objects
     model = APIModels()
 
+    # Default timeout when calling server endpoint, in sec
+    client_timeout = 10
+
     def __init__(self, yaml_str=None, yaml_path=None):
         """An API Specification"""
 
@@ -68,7 +71,7 @@ class API():
         # Auto-generate client callers
         # so we can write
         # api.call.login(param)  => call /v1/login/ on server with param as json parameter
-        callers_dict = generate_client_callers(self.api_spec)
+        callers_dict = generate_client_callers(self.api_spec, timeout=self.client_timeout)
         for method, caller in callers_dict.items():
             setattr(self.client, method, caller)
 
