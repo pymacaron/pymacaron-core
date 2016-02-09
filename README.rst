@@ -98,7 +98,7 @@ Implement the 'do_login' endpoint:
     def do_login(credentials):
         if authenticate_user(credentials):
             # Get the class representing bravado-core Welcome objects
-            Welcome = ApiPool().login.Welcome
+            Welcome = ApiPool().login.model.Welcome
             # Instantiate Welcome and return it
             return Welcome(message="Welcome!")
         else:
@@ -140,7 +140,7 @@ Calling that server now looks like (assuming the server api is called 'public'):
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
-    version = ApiPool().public.version().call()
+    version = ApiPool().public.client.version().call()
 
 To call multiple server endpoints in parallel:
 
@@ -152,8 +152,8 @@ To call multiple server endpoints in parallel:
     # Call two endpoints in parallel:
     [result_version, result_login]
         = async_call(
-             ApiPool().public.version(),
-             ApiPool().login.login(credentials),
+             ApiPool().public.client.version(),
+             ApiPool().login.client.login(credentials),
         )
 
 Install
