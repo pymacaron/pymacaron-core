@@ -69,23 +69,20 @@ def _generate_client_caller(spec, endpoint, timeout):
             # The body parameter is the first elem in *args
             if len(args) != 1:
                 raise ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)
-            params = spec.model_to_json(args[0])
+            data = spec.model_to_json(args[0])
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
-        if endpoint.method == 'GET':
-            greq = grequests.get(url,
-                                 params=params,
-                                 headers=headers,
-                                 timeout=timeout)
-        elif endpoint.method == 'POST':
-            greq = grequests.post(url,
-                                  data=data,
-                                  headers=headers,
-                                  timeout=timeout)
-        else:
+        method = endpoint.method.lower()
+        if method not in ('get', 'post'):
             raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
                                 (endpoint.method, endpoint.path))
+
+        greq = getattr(grequests, method)(url,
+                                          data=data,
+                                          params=params,
+                                          headers=headers,
+                                          timeout=timeout)
 
         return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path)
 
@@ -109,13 +106,13 @@ class ClientCaller():
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
             if 'error_description' in response.text:
-                # We got a KlueException
-                result = self._unmarshal(response[0])
+                # We got a KlueException. UGLY FRAGILE CODE. To be replaced by proper exception scheme
+                j = response.json()
                 log.warn("Call to %s %s failed returned code %s: %s" %
-                         (self.method, self.path, response.status_code, result))
-                k = KlueException(result['error_description'])
+                         (self.method, self.path, response.status_code, j))
+                k = KlueException(j.get('error_description', ''))
                 k.status = response.status_code
-                k.error = result['error']
+                k.error = j.get('error', '')
                 raise k
             else:
                 # Unknown exception...
@@ -124,7 +121,7 @@ class ClientCaller():
                 k.error = 'UNKNOWN_REMOTE_ERROR'
                 raise k
         else:
-            result = self._unmarshal(response[0])
+            result = self._unmarshal(response)
             return result
 
     def _unmarshal(self, response):
