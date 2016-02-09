@@ -79,32 +79,55 @@ def _generate_client_caller(spec, endpoint, timeout):
                              headers=headers,
                              timeout=timeout)
 
-        return ClientCaller(greq, endpoint.operation)
+        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path)
 
     return client
 
 
 class ClientCaller():
 
-    def __init__(self, greq, operation):
+    def __init__(self, greq, operation, method, path):
         self.operation = operation
         self.greq = greq
+        self.method = method
+        self.path = path
 
     def call(self):
         # TODO: add retry handler to map
-        response = grequests.map([self.greq])
-        assert len(response) == 1
-        return self._unmarshal(response[0])
+        responses = grequests.map([self.greq])
+        assert len(responses) == 1
+        response = responses[0]
+
+        # If the remote-server returned an error, raise it as a local KlueException
+        if str(response.status_code) != '200':
+            if 'error_description' in response.text:
+                # We got a KlueException
+                result = self._unmarshal(response[0])
+                log.warn("Call to %s %s failed returned code %s: %s" %
+                         (self.method, self.path, response.status_code, result))
+                k = KlueException(result['error_description'])
+                k.status = response.status_code
+                k.error = result['error']
+                raise k
+            else:
+                # Unknown exception...
+                k = KlueException(response.text)
+                k.status = response.status_code
+                k.error = 'UNKNOWN_REMOTE_ERROR'
+                raise k
+        else:
+            result = self._unmarshal(response[0])
+            return result
 
     def _unmarshal(self, response):
         # Now transform the request's Response object into an instance of a
         # swagger model
         try:
             result = unmarshal_response(response, self.operation)
-            return result
         except jsonschema.exceptions.ValidationError as e:
             new_e = ValidationError(str(e))
             return new_e.http_reply()
+        return result
 
 def async_call(*client_callers):
     """Call these server endpoints asynchronously and return Model or Error objects"""
