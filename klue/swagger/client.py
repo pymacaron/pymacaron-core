@@ -72,12 +72,20 @@ def _generate_client_caller(spec, endpoint, timeout):
             params = spec.model_to_json(args[0])
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
-        # TODO: use get or post or whatever, depending on exected method
-        greq = grequests.get(url,
-                             data=data,
-                             params=params,
-                             headers=headers,
-                             timeout=timeout)
+        # Call the right grequests method (get, post...)
+        if endpoint.method == 'GET':
+            greq = grequests.get(url,
+                                 params=params,
+                                 headers=headers,
+                                 timeout=timeout)
+        elif endpoint.method == 'POST':
+            greq = grequests.post(url,
+                                  data=data,
+                                  headers=headers,
+                                  timeout=timeout)
+        else:
+            raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                                (endpoint.method, endpoint.path))
 
         return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path)
 
