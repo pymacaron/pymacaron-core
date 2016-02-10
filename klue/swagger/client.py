@@ -106,23 +106,19 @@ class ClientCaller():
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
             if 'error_description' in response.text:
-                # We got a KlueException. UGLY FRAGILE CODE. To be replaced by proper exception scheme
-                j = response.json()
-                log.warn("Call to %s %s failed returned code %s: %s" %
-                         (self.method, self.path, response.status_code, j))
-                k = KlueException(j.get('error_description', ''))
-                k.status = response.status_code
-                k.error = j.get('error', '')
-                raise k
+                # We got a KlueException: unmarshal it and return as valid return value
+                # UGLY FRAGILE CODE. To be replaced by proper exception scheme
+                log.warn("Call to %s %s returns error: %s" %
+                         (self.method, self.path, response.text))
             else:
                 # Unknown exception...
                 k = KlueException(response.text)
                 k.status = response.status_code
                 k.error = 'UNKNOWN_REMOTE_ERROR'
                 raise k
-        else:
-            result = self._unmarshal(response)
-            return result
+
+        result = self._unmarshal(response)
+        return result
 
     def _unmarshal(self, response):
         # Now transform the request's Response object into an instance of a
