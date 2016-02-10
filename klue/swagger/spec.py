@@ -73,6 +73,7 @@ class ApiSpec():
         if model_name not in self.swagger_dict['definitions']:
             raise ValidationError("Swagger spec has no definition for model %s" % model_name)
         model_def = self.swagger_dict['definitions'][model_name]
+        log.debug("Marshalling %s into json" % model_name)
         return marshal_model(self.spec, model_def, object)
 
 
