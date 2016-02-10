@@ -6,7 +6,7 @@ log = logging.getLogger(__name__)
 
 
 class KlueException(Exception):
-    code = 'Unknown exception'
+    code = 'UNKNOWN_EXCEPTION'
     status = 500
 
     def http_reply(self):
@@ -21,37 +21,37 @@ class KlueException(Exception):
             log.warn("ERROR: caught error and returning %s" % r)
         return r
 
-class ValidationError(KlueException):
-    code = 'INVALID_PARAMETER'
-    status = 400
 
-class Auth0Exception(KlueException):
-    code = 'AUTH0_ERROR'
-    status = 401
+# Match an error code to a exception class name and a status code
+code_classname_status = [
+    ('INVALID_PARAMETER', 'ValidationError', 400),
+    ('AUTH0_ERROR', 'Auth0Exception', 401),
+    ('UNKNOWN_EXCEPTION', 'WeirdResultException', 500),
+    ('TOKEN_EXPIRED', 'AuthTokenExpiredError', 401),
+    ('INVALID_AUDIENCE', 'AuthInvalidAudienceError', 401),
+    ('TOKEN_INVALID_SIGNATURE', 'AuthDecodeError', 401),
+    ('INVALID_HEADER', 'AuthInvalidHeaderError', 401),
+    ('AUTHORIZATION_HEADER_MISSING', 'AuthMissingHeaderError', 401),
+    ('SERVER_ERROR', 'InternalServerError', 500),
+]
 
-class WeirdResultException(KlueException):
-    pass
+# Generate all exception classes
+code_to_class = {}
+for code, classname, status in code_classname_status:
+    log.debug("Generating exception class %s(%s, %s)" % (classname, code, status))
+    myexception = type(classname, (KlueException,),{"code": code, "status": status})
+    globals()[classname] = myexception
 
-class AuthTokenExpiredError(KlueException):
-    code = 'TOKEN_EXPIRED'
-    status = 401
+    assert code not in code_to_class
+    code_to_class[code] = myexception
 
-class AuthInvalidAudienceError(KlueException):
-    code = 'INVALID_AUDIENCE'
-    status = 401
 
-class AuthDecodeError(KlueException):
-    code = 'TOKEN_INVALID_SIGNATURE'
-    status = 401
 
-class AuthInvalidHeaderError(KlueException):
-    code = 'INVALID_HEADER'
-    status = 401
-
-class AuthMissingHeaderError(KlueException):
-    code = 'AUTHORIZATION_HEADER_MISSING'
-    status = 401
-
-class InternalServerError(KlueException):
-    code = 'SERVER_ERROR'
-    status = 500
+def responsify(error):
+    """Take an Error model and return it as a Flask response"""
+    assert str(type(error).__name__) == 'Error'
+    if error.error in code_to_class:
+        e = code_to_class[error.error](error.error_description)
+        return e.http_reply()
+    else:
+        return KlueException("Caught un-mapped error: %s" % error).http_reply()
