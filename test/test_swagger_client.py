@@ -93,9 +93,8 @@ def test_client_with_query_param():
 
 @patch('klue.swagger.client.grequests')
 def test_requests_parameters_with_query_param(grequests):
-    handler, _ = _slurp_yaml(yaml_query_param)
-
     grequests.get = MagicMock()
+    handler, _ = _slurp_yaml(yaml_query_param)
     try:
         handler(arg1='this', arg2='that').call()
     except Exception as e:

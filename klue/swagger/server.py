@@ -1,36 +1,16 @@
 import pprint
 import jsonschema
 import logging
-from importlib import import_module
 from flask import request, jsonify
 from flask.ext.cors import cross_origin
 from klue.exceptions import KlueException, ValidationError, add_error_handlers
+from klue.utils import get_function
 from bravado_core.operation import Operation
 from bravado_core.param import unmarshal_param
 from bravado_core.request import IncomingRequest, unmarshal_request
 
 
 log = logging.getLogger(__name__)
-
-
-def _get_function(pkgpath):
-    """Take a full path to a python method, for example mypkg.subpkg.method and
-    return the method (after importing the required packages)
-    """
-    # Extract the module and function name from pkgpath
-    elems = pkgpath.split('.')
-    if len(elems) <= 1:
-        raise KlueException("Path %s is too short. Should be at least module.func." % elems)
-    func_name = elems[-1]
-    func_module = '.'.join(elems[0:-1])
-
-    # Load the function's module and get the function
-    try:
-        m = import_module(func_module)
-        f = getattr(m, func_name)
-        return f
-    except Exception as e:
-        raise KlueException("Failed to import %s: " % pkgpath + str(e))
 
 
 # TODO: add authentication when relevant
@@ -45,7 +25,7 @@ def spawn_server_api(app, api_spec, error_callback):
     """
 
     def mycallback(endpoint):
-        handler_func = _get_function(endpoint.handler_server)
+        handler_func = get_function(endpoint.handler_server)
 
         # Generate api endpoint around that handler
         handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback)
@@ -67,7 +47,7 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback):
 
     # Decorate the handler function, if Swagger spec tells us to
     if endpoint.decorate_server:
-        decorator = _get_function(endpoint.decorate_server)
+        decorator = get_function(endpoint.decorate_server)
         handler_func = decorator(handler_func)
 
     def handler_wrapper():

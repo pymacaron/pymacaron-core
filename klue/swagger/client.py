@@ -3,6 +3,7 @@ import pprint
 import jsonschema
 import logging
 from klue.exceptions import KlueException, ValidationError
+from klue.utils import get_function
 from bravado_core.response import unmarshal_response, OutgoingResponse
 
 
@@ -37,6 +38,20 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
                              spec.port,
                              endpoint.path)
 
+    decorator = None
+    if endpoint.decorate_request:
+        decorator = get_function(endpoint.decorate_request)
+
+    method = endpoint.method.lower()
+    if method not in ('get', 'post'):
+        return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                                            (endpoint.method, endpoint.path)))
+
+    grequests_method = getattr(grequests, method)
+    if decorator:
+        grequests_method = decorator(grequests_method)
+    import pprint
+
     def client(*args, **kwargs):
         """Call the server endpoint and handle marshaling/unmarshaling of parameters/result.
 
@@ -47,19 +62,6 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         headers = {}
         data = None
         params = None
-
-#         if endpoint.has_auth:
-#             # Re-use the token of the currently authenticated user
-#             top = stack.top
-#             if not top:
-#                 raise KlueException("BUG: no stack.top. Is there an authenticated user in the context?")
-#             payload = top.current_user
-#             if not payload:
-#                 raise KlueException("BUG: stack.top.current_user contains no payload. Is there an authenticated user in the context?")
-#             token = payload['token']
-#             if not token:
-#                 raise KlueException("BUG: no payload in stack.top. Is there an authenticated user in the context?")
-#             headers = {"Authorization": "Bearer %s" % token}
 
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs
@@ -73,16 +75,11 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
-        method = endpoint.method.lower()
-        if method not in ('get', 'post'):
-            return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                                                (endpoint.method, endpoint.path)))
-
-        greq = getattr(grequests, method)(url,
-                                          data=data,
-                                          params=params,
-                                          headers=headers,
-                                          timeout=timeout)
+        greq = grequests_method(url,
+                                data=data,
+                                params=params,
+                                headers=headers,
+                                timeout=timeout)
 
         return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path)
 

@@ -16,6 +16,7 @@ class EndpointData():
     handler_server = None
     handler_client = None
     decorate_server = None
+    decorate_request = None
     operation = None
 
     param_in_body = False
@@ -110,6 +111,10 @@ class ApiSpec():
                 # Should we decorate the server handler?
                 if 'x-decorate-server' in op_spec:
                     data.decorate_server = op_spec['x-decorate-server']
+
+                # Should we manipulate the grequests parameters?
+                if 'x-decorate-request' in op_spec:
+                    data.decorate_request = op_spec['x-decorate-request']
 
                 # Generate a bravado-core operation object
                 data.operation = Operation.from_spec(self.spec, path, method, op_spec)

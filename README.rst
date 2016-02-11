@@ -155,6 +155,14 @@ To call multiple server endpoints in parallel:
              ApiPool.login.client.login(credentials),
         )
 
+
+Usage - Authentication
+======================
+
+TODO: describe the 'x-decorate-request' and 'x-decorate-server' attributes of
+the swagger spec + give example of using them to add-on authentication support.
+
+
 Usage - Handling Errors
 =======================
 

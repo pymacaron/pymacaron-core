@@ -211,6 +211,7 @@ paths:
       produces:
         - application/json
       x-bind-server: pnt_login.babar
+      x-decorate-request: foo.bar.baz
       responses:
         200:
           description: A session token
@@ -282,6 +283,7 @@ definitions:
             assert data.handler_server == 'pnt_login.babar'
             assert data.handler_client is None
             assert data.decorate_server is None
+            assert data.decorate_request == 'foo.bar.baz'
             assert data.param_in_body is False
             assert data.param_in_query is True
             assert data.no_params is False
@@ -291,6 +293,7 @@ definitions:
             assert data.handler_server == 'pnt_login.handlers.do_login'
             assert data.handler_client == 'login'
             assert data.decorate_server is None
+            assert data.decorate_request is None
             assert data.param_in_body is True
             assert data.param_in_query is False
             assert data.no_params is False
@@ -299,6 +302,7 @@ definitions:
             assert data.method == 'GET'
             assert data.handler_server == 'do_version'
             assert data.handler_client is None
+            assert data.decorate_request is None
             assert data.decorate_server == 'foo.bar.baz'
             assert data.param_in_body is False
             assert data.param_in_query is False
