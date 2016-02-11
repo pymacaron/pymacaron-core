@@ -39,9 +39,9 @@ First, load the Swagger specifications of all the services your server will use:
     from klue.swagger import ApiPool
 
     pool = ApiPool()
-    pool.add('public', 'public.yaml')
-    pool.add('login', 'login.yaml')
-    pool.add('user', 'user.yaml')
+    pool.add('public', yaml_path='public.yaml')
+    pool.add('login', yaml_path='login.yaml')
+    pool.add('user', yaml_path='user.yaml', timeout=20)
 
 
 Usage - Generating Server

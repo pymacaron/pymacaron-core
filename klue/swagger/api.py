@@ -49,7 +49,7 @@ class API():
     # Default timeout when calling server endpoint, in sec
     client_timeout = 10
 
-    def __init__(self, yaml_str=None, yaml_path=None):
+    def __init__(self, yaml_str=None, yaml_path=None, timeout=None):
         """An API Specification"""
 
         if yaml_path:
@@ -59,6 +59,9 @@ class API():
             swagger_dict = yaml.load(yaml_str)
 
         self.api_spec = ApiSpec(swagger_dict)
+
+        if timeout:
+            self.client_timeout = timeout
 
         # Auto-generate class methods for every object model defined
         # in the swagger spec, calling that model's constructor

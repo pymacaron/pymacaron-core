@@ -34,8 +34,8 @@ class ApiPool():
     """
 
 
-    def add(self, name, swagger_file_path):
-        api = API(yaml_path=swagger_file_path)
+    def add(self, name, **kwargs):
+        api = API(**kwargs)
         global apis
         apis[name] = api
         setattr(ApiPool, name, api)
