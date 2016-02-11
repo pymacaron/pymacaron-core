@@ -4,7 +4,7 @@ import logging
 from importlib import import_module
 from flask import request, jsonify
 from flask.ext.cors import cross_origin
-from klue.exceptions import KlueException, ValidationError, InternalServerError
+from klue.exceptions import KlueException, ValidationError, add_error_handlers
 from bravado_core.operation import Operation
 from bravado_core.param import unmarshal_param
 from bravado_core.request import IncomingRequest, unmarshal_request
@@ -45,10 +45,7 @@ def spawn_server_api(app, api_spec, error_callback):
     """
 
     def mycallback(endpoint):
-        try:
-            handler_func = _get_function(endpoint.handler_server)
-        except Exception as e:
-            return error_callback(e)
+        handler_func = _get_function(endpoint.handler_server)
 
         # Generate api endpoint around that handler
         handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback)
@@ -60,6 +57,9 @@ def spawn_server_api(app, api_spec, error_callback):
 
 
     api_spec.call_on_each_endpoint(mycallback)
+
+    # Add custom error handlers to the app
+    add_error_handlers(app)
 
 
 def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback):
@@ -81,8 +81,7 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback):
             parameters = unmarshal_request(req, endpoint.operation)
             # Example of parameters: {'body': RegisterCredentials()}
         except jsonschema.exceptions.ValidationError as e:
-            new_e = ValidationError(str(e))
-            return new_e.http_reply()
+            return error_callback(ValidationError(str(e)))
 
         if endpoint.param_in_body:
             assert len(parameters) == 1
