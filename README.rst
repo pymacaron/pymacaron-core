@@ -38,10 +38,9 @@ First, load the Swagger specifications of all the services your server will use:
 
     from klue.swagger import ApiPool
 
-    pool = ApiPool()
-    pool.add('public', yaml_path='public.yaml')
-    pool.add('login', yaml_path='login.yaml')
-    pool.add('user', yaml_path='user.yaml', timeout=20)
+    ApiPool.add('public', yaml_path='public.yaml')
+    ApiPool.add('login', yaml_path='login.yaml')
+    ApiPool.add('user', yaml_path='user.yaml', timeout=20)
 
 
 Usage - Generating Server
@@ -84,7 +83,7 @@ Populate a Flask app with server endpoints for the 'login' api:
 .. code-block:: python
 
     app = Flask(__name__)
-    pool.login.spawn_api(app)
+    ApiPool.login.spawn_api(app)
 
 
 Implement the 'do_login' endpoint:
@@ -98,7 +97,7 @@ Implement the 'do_login' endpoint:
     def do_login(credentials):
         if authenticate_user(credentials):
             # Get the class representing bravado-core Welcome objects
-            Welcome = ApiPool().login.model.Welcome
+            Welcome = ApiPool.login.model.Welcome
             # Instantiate Welcome and return it
             return Welcome(message="Welcome!")
         else:
@@ -140,7 +139,7 @@ Calling that server now looks like (assuming the server api is called 'public'):
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
-    version = ApiPool().public.client.version().call()
+    version = ApiPool.public.client.version().call()
 
 To call multiple server endpoints in parallel:
 
@@ -152,8 +151,8 @@ To call multiple server endpoints in parallel:
     # Call two endpoints in parallel:
     [result_version, result_login]
         = async_call(
-             ApiPool().public.client.version(),
-             ApiPool().login.client.login(credentials),
+             ApiPool.public.client.version(),
+             ApiPool.login.client.login(credentials),
         )
 
 Install

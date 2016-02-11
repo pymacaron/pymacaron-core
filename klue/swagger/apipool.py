@@ -33,7 +33,7 @@ class ApiPool():
     the YAML file.
     """
 
-
+    @classmethod
     def add(self, name, **kwargs):
         api = API(**kwargs)
         global apis
