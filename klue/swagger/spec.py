@@ -109,7 +109,7 @@ class ApiSpec():
 
                 # Should we decorate the server handler?
                 if 'x-decorate-server' in op_spec:
-                     data.decorate_server = op_spec['x-decorate-server']
+                    data.decorate_server = op_spec['x-decorate-server']
 
                 # Generate a bravado-core operation object
                 data.operation = Operation.from_spec(self.spec, path, method, op_spec)

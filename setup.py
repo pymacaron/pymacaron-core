@@ -1,10 +1,11 @@
 from setuptools import setup
 
-setup(name='klue-client-server',
-      version='0.0.5',
-      url='https://github.com/erwan-lemonnier/klue-client-server',
-      license='BSD',
-      author='Erwan Lemonnier',
+setup(
+    name='klue-client-server',
+    version='0.0.5',
+    url='https://github.com/erwan-lemonnier/klue-client-server',
+    license='BSD',
+    author='Erwan Lemonnier',
     author_email='erwan@lemonnier.se',
     description='Swagger + Flask + Grequests + Bravado = Client/Server auto-spawning',
     install_requires=[
@@ -13,13 +14,13 @@ setup(name='klue-client-server',
         'bravado-core',
         'pyyaml'
     ],
-    tests_require = [
+    tests_require=[
         'nose',
         'mock',
         'responses',
         'pep8'
     ],
-    test_suite = 'nose.collector',
+    test_suite='nose.collector',
     packages=['klue', 'klue.swagger'],
     zip_safe=False,
     include_package_data=True,

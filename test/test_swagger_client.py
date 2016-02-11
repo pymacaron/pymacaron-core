@@ -101,7 +101,10 @@ def test_requests_parameters_with_query_param(grequests):
         pass
 
     grequests.get.assert_called_once_with('http://some.server.com:80//v1/some/path',
-                                          data=None, headers={}, params={'arg1': 'this', 'arg2': 'that'}, timeout=10)
+                                          data=None,
+                                          headers={},
+                                          params={'arg1': 'this', 'arg2': 'that'},
+                                          timeout=10)
 
 
 yaml_body_param = """
@@ -118,7 +121,7 @@ produces:
   - application/json
 paths:
   /v1/some/path:
-    get:
+    post:
       summary: blabla
       description: blabla
       parameters:
@@ -169,7 +172,7 @@ definitions:
 def test_client_with_body_param():
     handler, spec = _slurp_yaml(yaml_body_param)
 
-    responses.add(responses.GET, "http://some.server.com:80//v1/some/path",
+    responses.add(responses.POST, "http://some.server.com:80//v1/some/path",
                   body='{"foo": "a", "bar": "b"}', status=200,
                   content_type="application/json")
 
@@ -198,7 +201,7 @@ def test_client_with_body_param():
 
 
 @patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_query_param(grequests):
+def test_requests_parameters_with_body_param(grequests):
     handler, spec = _slurp_yaml(yaml_body_param)
     model_class = spec.definitions['Param']
     param = model_class(arg1='a', arg2='b')
@@ -209,9 +212,9 @@ def test_requests_parameters_with_query_param(grequests):
     except Exception as e:
         pass
 
-    grequests.get.assert_called_once_with('http://some.server.com:80//v1/some/path',
-                                          data=None, headers={},
-                                          params={'arg1': 'a', 'arg2': 'b'}, timeout=10)
+    grequests.post.assert_called_once_with('http://some.server.com:80//v1/some/path',
+                                           data={'arg1': 'a', 'arg2': 'b'}, headers={},
+                                           params=None, timeout=10)
 
 
 def test_client_with_auth_required():

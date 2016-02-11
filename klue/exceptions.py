@@ -39,7 +39,7 @@ code_classname_status = [
 code_to_class = {}
 for code, classname, status in code_classname_status:
     log.debug("Generating exception class %s(%s, %s)" % (classname, code, status))
-    myexception = type(classname, (KlueException,),{"code": code, "status": status})
+    myexception = type(classname, (KlueException,), {"code": code, "status": status})
     globals()[classname] = myexception
 
     assert code not in code_to_class
