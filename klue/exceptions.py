@@ -18,7 +18,7 @@ class KlueException(Exception):
         })
         r.status_code = self.status
         if str(self.status) != "200":
-            log.warn("ERROR: caught error and returning %s" % r)
+            log.warn("ERROR: caught error %s %s [%s]" % (self.status, self.code, str(self)))
         return r
 
 

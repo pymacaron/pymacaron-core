@@ -3,6 +3,7 @@ import yaml
 import responses
 from httplib import HTTPResponse
 from mock import patch, MagicMock
+from klue.swagger.api import default_error_callback
 from klue.swagger.spec import ApiSpec
 from klue.swagger.client import generate_client_callers
 from klue.exceptions import KlueException, ValidationError
@@ -10,7 +11,7 @@ from klue.exceptions import KlueException, ValidationError
 def _slurp_yaml(yaml_str):
     swagger_dict = yaml.load(yaml_str)
     spec = ApiSpec(swagger_dict)
-    callers_dict = generate_client_callers(spec)
+    callers_dict = generate_client_callers(spec, 10, default_error_callback)
 
     assert len(callers_dict.keys()) == 1
     assert 'do_test' in callers_dict

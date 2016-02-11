@@ -29,6 +29,12 @@ def generate_model_instantiator(model_class):
     return instantiate_model
 
 
+def default_error_callback(e):
+    """The default callback for handling exceptions caught in the client and server stubs:
+    just raise the exception."""
+    raise e
+
+
 class API():
     """Describes a REST client/server API, with sugar coating:
     - easily instantiating the objects defined in the API
@@ -49,7 +55,10 @@ class API():
     # Default timeout when calling server endpoint, in sec
     client_timeout = 10
 
-    def __init__(self, yaml_str=None, yaml_path=None, timeout=None):
+    # Callback to handle exceptions
+    error_callback = default_error_callback
+
+    def __init__(self, yaml_str=None, yaml_path=None, timeout=None, error_callback=None):
         """An API Specification"""
 
         if yaml_path:
@@ -63,6 +72,9 @@ class API():
         if timeout:
             self.client_timeout = timeout
 
+        if error_callback:
+            self.error_callback = error_callback
+
         # Auto-generate class methods for every object model defined
         # in the swagger spec, calling that model's constructor
         # Ex:
@@ -74,14 +86,14 @@ class API():
         # Auto-generate client callers
         # so we can write
         # api.call.login(param)  => call /v1/login/ on server with param as json parameter
-        callers_dict = generate_client_callers(self.api_spec, timeout=self.client_timeout)
+        callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback)
         for method, caller in callers_dict.items():
             setattr(self.client, method, caller)
 
 
     def spawn_api(self, app):
         """Auto-generate server endpoints implementing the API into this Flask app"""
-        return spawn_server_api(app, self.api_spec)
+        return spawn_server_api(app, self.api_spec, self.error_callback)
 
 
     def get_version(self):

@@ -4,6 +4,8 @@ import json
 from flask import Flask, request, jsonify
 from klue.swagger.spec import ApiSpec
 from klue.swagger.server import spawn_server_api
+from klue.swagger.api import default_error_callback
+from klue.exceptions import KlueException
 from mock import patch
 
 
@@ -49,23 +51,18 @@ def gen_app(ystr):
     swagger_dict = yaml.load(ystr)
     spec = ApiSpec(swagger_dict)
     app = Flask('test')
-    spawn_server_api(app, spec)
+    spawn_server_api(app, spec, default_error_callback)
     return app, spec
 
-def check_ok_reply(r, token):
+def assert_ok_reply(r, token):
     assert r.status_code == 200, r.status_code
     j = json.loads(r.data.decode("utf-8"))
     print("json reply: " + pprint.pformat(j))
     assert j['token'] == token
 
-def check_error(r, status, code, indesc):
-    print("sc: %s" % str(r.status_code))
-    assert r.status_code == status, r.status_code
-    j = json.loads(r.data.decode("utf-8"))
-    print("json reply: " + pprint.pformat(j))
-    assert j['error'] == code
-    assert indesc in j['error_description']
-    assert j['status'] == status
+def assert_error(r, status, content):
+    assert str(r.status_code) == str(status), "status [%s] == [%s]" % (r.status_code, status)
+    assert content in r.status, "[%s] in [%s]" % (content, r.status)
 
 #
 # TESTS
@@ -99,7 +96,7 @@ def test_swagger_server_no_param(func):
 
     with app.test_client() as c:
         r = c.get('/v1/no/param')
-        check_ok_reply(r, '123')
+        assert_ok_reply(r, '123')
         func.assert_called_once_with()
 
 
@@ -112,7 +109,7 @@ def test_swagger_server_no_result(func):
 
     with app.test_client() as c:
         r = c.get('/v1/no/param')
-        check_error(r, 500, 'SERVER_ERROR', 'nothing to send')
+        assert_error(r, 500, 'INTERNAL SERVER ERROR')
 
 
 @patch('klue.test.return_token')
@@ -144,7 +141,14 @@ def test_swagger_invalid_server_return_value(func):
 
     with app.test_client() as c:
         r = c.get('/v1/no/param')
-        check_error(r, 500, 'SERVER_ERROR', 'did not return a class')
+        assert_error(r, 500, 'INTERNAL SERVER ERROR')
+#         try:
+#             c.get('/v1/no/param')
+#         except Exception as e:
+#             print("GOT EXCEPT %s" % str(e))
+#             assert_error(e, 'InternalServerError', 'Contains')
+#         else:
+#             assert 0
 
 # TODO: enable this test when server-side validation is enabled
 #
@@ -199,7 +203,7 @@ def test_swagger_server_param_in_body(func):
             'email': 'a@a.a',
             'int': '123123',
         })
-        check_ok_reply(r, '456')
+        assert_ok_reply(r, '456')
         func.assert_called_once_with(Credentials(email='a@a.a', int='123123'))
 
 
@@ -241,7 +245,7 @@ def test_swagger_server_param_in_query(func):
 
     with app.test_client() as c:
         r = c.get('/v1/in/query?foo=aaaa&bar=bbbb')
-        check_ok_reply(r, '456')
+        assert_ok_reply(r, '456')
         func.assert_called_once_with(bar='bbbb', foo='aaaa')
 
 
@@ -255,7 +259,7 @@ def test_swagger_server_param_in_query__missing_required_param(func):
 
     with app.test_client() as c:
         r = c.get('/v1/in/query?bar=bbbb')
-        check_error(r, 400, 'INVALID_PARAMETER', 'foo is required')
+        assert_error(r, 400, 'BAD REQUEST')
         func.assert_not_called()
 
 
@@ -274,10 +278,8 @@ def test_unmarshal_request_error__missing_required_argument(func):
     func.return_value = SessionToken(token='456')
 
     with app.test_client() as c:
-        r = c.get('/v1/in/body', data={
-            'bazzoom': 'thiswontwork',
-        })
-        check_error(r, 400, 'INVALID_PARAMETER', "email' is a required property")
+        r = c.get('/v1/in/body', data={'bazzoom': 'thiswontwork'})
+        assert_error(r, 400, 'BAD REQUEST')
         func.assert_not_called()
 
 

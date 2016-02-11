@@ -9,7 +9,7 @@ from bravado_core.response import unmarshal_response, OutgoingResponse
 log = logging.getLogger(__name__)
 
 
-def generate_client_callers(spec, timeout=10):
+def generate_client_callers(spec, timeout, error_callback):
     """Return a dict mapping method names to anonymous functions that
     will call the server's endpoint of the corresponding name as
     described in the api defined by the swagger dict and bravado spec"""
@@ -22,7 +22,7 @@ def generate_client_callers(spec, timeout=10):
 
         log.info("Generating client for %s %s" % (endpoint.method, endpoint.path))
 
-        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout)
+        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback)
 
     spec.call_on_each_endpoint(mycallback)
 
@@ -30,7 +30,7 @@ def generate_client_callers(spec, timeout=10):
 
 
 
-def _generate_client_caller(spec, endpoint, timeout):
+def _generate_client_caller(spec, endpoint, timeout, error_callback):
 
     url = "%s://%s:%s/%s" % (spec.protocol,
                              spec.host,
@@ -68,15 +68,15 @@ def _generate_client_caller(spec, endpoint, timeout):
         elif endpoint.param_in_body:
             # The body parameter is the first elem in *args
             if len(args) != 1:
-                raise ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)
+                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = spec.model_to_json(args[0])
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
         method = endpoint.method.lower()
         if method not in ('get', 'post'):
-            raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                                (endpoint.method, endpoint.path))
+            return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                                                (endpoint.method, endpoint.path)))
 
         greq = getattr(grequests, method)(url,
                                           data=data,
@@ -115,7 +115,7 @@ class ClientCaller():
                 k = KlueException(response.text)
                 k.status = response.status_code
                 k.error = 'UNKNOWN_REMOTE_ERROR'
-                raise k
+                return error_callback(k)
 
         result = self._unmarshal(response)
         return result

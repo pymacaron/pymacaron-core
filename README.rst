@@ -155,9 +155,36 @@ To call multiple server endpoints in parallel:
              ApiPool.login.client.login(credentials),
         )
 
+Usage - Handling Errors
+=======================
+
+Klue-client-server may raise exceptions, for example if the server stub gets an
+invalid request according to the swagger specification.
+
+However klue-client-server does not know how to format internal errors into an
+object model fitting that of the loaded swagger specification. Instead, you
+should provide the apipool with a callback to format exceptions into whatever
+object you wish to return instead. Something like:
+
+.. code-block:: python
+
+    from klue.swagger import ApiPool
+
+    def my_error_formatter(e):
+        """Take an exception and return a proper swagger Error object"""
+        return ApiPool.public.model.Error(
+            type=type(e).__name__,
+            raw=str(e),
+        )
+
+    ApiPool.add('public', yaml_path='public.yaml', error_callback=my_error_formatter)
+
+Internal errors raised by klue-client-server are instances of klue.exceptions.KlueException
+
+
 Install
 -------
 
 .. code-block:: shell
 
-    pip install -i https://testpypi.python.org/pypi klue-client-server
+    pip install klue-client-server
