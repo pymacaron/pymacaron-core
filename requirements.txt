@@ -1,6 +1,7 @@
 mock
 nose
 flask
+flask-cors
 requests
 pep8
 six
