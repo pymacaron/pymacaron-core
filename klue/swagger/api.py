@@ -58,7 +58,7 @@ class API():
     # Callback to handle exceptions
     error_callback = default_error_callback
 
-    def __init__(self, yaml_str=None, yaml_path=None, timeout=None, error_callback=None):
+    def __init__(self, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None):
         """An API Specification"""
 
         if yaml_path:
@@ -67,7 +67,7 @@ class API():
         elif yaml_str:
             swagger_dict = yaml.load(yaml_str)
 
-        self.api_spec = ApiSpec(swagger_dict)
+        self.api_spec = ApiSpec(swagger_dict, formats)
 
         if timeout:
             self.client_timeout = timeout

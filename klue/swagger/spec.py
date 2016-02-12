@@ -40,15 +40,21 @@ class ApiSpec():
     protocol = None
     version = None
 
-    def __init__(self, swagger_dict):
+    def __init__(self, swagger_dict, formats=None):
         self.swagger_dict = swagger_dict
-        self.spec = Spec.from_dict(self.swagger_dict,
-                                   config={
-                                       'validate_responses': True,
-                                       'validate_requests': True,
-                                       'validate_swagger_spec': False,
-                                       'use_models': True,
-                                   })
+
+        config={
+            'validate_responses': True,
+            'validate_requests': True,
+            'validate_swagger_spec': False,
+            'use_models': True,
+        }
+
+        if formats:
+            assert type(formats).__name__ == 'list'
+            config['formats'] = formats
+
+        self.spec = Spec.from_dict(self.swagger_dict, config=config)
         self.definitions = self.spec.definitions
 
         self.host = swagger_dict.get('host', None)
@@ -82,6 +88,10 @@ class ApiSpec():
         """Find all server endpoints defined in the swagger spec and calls 'callback' for each,
         with an instance of EndpointData as argument.
         """
+
+        if 'paths' not in self.swagger_dict:
+            return
+
         for path, d in self.swagger_dict['paths'].items():
             for method, op_spec in d.items():
                 data = EndpointData(path, method)
