@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='klue-client-server',
-    version='0.0.10',
+    version='0.0.11',
     url='https://github.com/erwan-lemonnier/klue-client-server',
     license='BSD',
     author='Erwan Lemonnier',
