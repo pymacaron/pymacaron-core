@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 # TODO: add authentication when relevant
 # TODO: support in-query parameters
-def spawn_server_api(app, api_spec, error_callback):
+def spawn_server_api(app, api_spec, error_callback, decorator):
     """Take a a Flask app and a swagger file in YAML format describing a REST
     API, and populate the app with routes handling all the paths and methods
     declared in the swagger file.
@@ -28,7 +28,7 @@ def spawn_server_api(app, api_spec, error_callback):
         handler_func = get_function(endpoint.handler_server)
 
         # Generate api endpoint around that handler
-        handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback)
+        handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, decorator)
 
         # Bind handler to the API path
         log.info("Binding %s %s ==> %s" % (endpoint.method, endpoint.path, endpoint.handler_server))
@@ -42,13 +42,17 @@ def spawn_server_api(app, api_spec, error_callback):
     add_error_handlers(app)
 
 
-def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback):
+def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, global_decorator):
     """Generate a handler method for the given url method+path and operation"""
 
     # Decorate the handler function, if Swagger spec tells us to
     if endpoint.decorate_server:
-        decorator = get_function(endpoint.decorate_server)
-        handler_func = decorator(handler_func)
+        endpoint_decorator = get_function(endpoint.decorate_server)
+        handler_func = endpoint_decorator(handler_func)
+
+    # And encapsulate all in a global decorator, if given one
+    if global_decorator:
+        handler_func = global_decorator(handler_func)
 
     def handler_wrapper():
         log.info("Calling %s" % handler_func.__name__)

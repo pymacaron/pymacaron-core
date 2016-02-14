@@ -85,6 +85,10 @@ Populate a Flask app with server endpoints for the 'login' api:
     app = Flask(__name__)
     ApiPool.login.spawn_api(app)
 
+    # Optionaly: wrap all server endpoints with a decorator
+    def analytics_wrapper(f):
+        ...
+    ApiPool.login.spawn_api(app, decorator=analytics_wrapper)
 
 Implement the 'do_login' endpoint:
 

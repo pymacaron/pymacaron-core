@@ -91,9 +91,11 @@ class API():
             setattr(self.client, method, caller)
 
 
-    def spawn_api(self, app):
+    def spawn_api(self, app, decorator=None):
         """Auto-generate server endpoints implementing the API into this Flask app"""
-        return spawn_server_api(app, self.api_spec, self.error_callback)
+        if decorator:
+            assert type(decorator).__name__ == 'function'
+        return spawn_server_api(app, self.api_spec, self.error_callback, decorator)
 
 
     def get_version(self):
