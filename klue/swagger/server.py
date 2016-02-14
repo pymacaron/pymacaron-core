@@ -50,10 +50,6 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
         endpoint_decorator = get_function(endpoint.decorate_server)
         handler_func = endpoint_decorator(handler_func)
 
-    # And encapsulate all in a global decorator, if given one
-    if global_decorator:
-        handler_func = global_decorator(handler_func)
-
     def handler_wrapper():
         log.info("Calling %s" % handler_func.__name__)
 
@@ -98,8 +94,12 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
         r.status_code = 200
         return r
 
-
     handler_wrapper = cross_origin(headers=['Content-Type', 'Authorization'])(handler_wrapper)
+
+    # And encapsulate all in a global decorator, if given one
+    if global_decorator:
+        handler_wrapper = global_decorator(handler_wrapper)
+
     return handler_wrapper
 
 
