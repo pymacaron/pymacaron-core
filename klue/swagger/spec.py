@@ -43,7 +43,7 @@ class ApiSpec():
     def __init__(self, swagger_dict, formats=None):
         self.swagger_dict = swagger_dict
 
-        config={
+        config = {
             'validate_responses': True,
             'validate_requests': True,
             'validate_swagger_spec': False,
