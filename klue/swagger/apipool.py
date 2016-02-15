@@ -40,3 +40,10 @@ class ApiPool():
         apis[name] = api
         setattr(ApiPool, name, api)
         return api
+
+    @classmethod
+    def current_server(self):
+        for name, api in apis.iteritems():
+            if api.is_server:
+                return name
+        return ''

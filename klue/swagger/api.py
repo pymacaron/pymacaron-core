@@ -6,7 +6,6 @@ from klue.swagger.server import spawn_server_api
 from klue.swagger.client import generate_client_callers
 from klue.swagger.spec import ApiSpec
 
-
 log = logging.getLogger(__name__)
 
 
@@ -58,6 +57,9 @@ class API():
     # Callback to handle exceptions
     error_callback = default_error_callback
 
+    # Flag: true if this api has spawned_api
+    is_server = False
+
     def __init__(self, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None):
         """An API Specification"""
 
@@ -95,6 +97,7 @@ class API():
         """Auto-generate server endpoints implementing the API into this Flask app"""
         if decorator:
             assert type(decorator).__name__ == 'function'
+        self.is_server = True
         return spawn_server_api(app, self.api_spec, self.error_callback, decorator)
 
 
