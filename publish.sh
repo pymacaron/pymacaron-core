@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-set -x
 
 IS_DIRTY_CLONE=$(git status --short --porcelain | wc -l)
 if [ "$IS_DIRTY_CLONE" -gt 0 ]; then
