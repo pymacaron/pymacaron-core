@@ -41,9 +41,16 @@ class ApiPool():
         setattr(ApiPool, name, api)
         return api
 
-    @classmethod
-    def current_server(self):
+    @property
+    def current_server_name(self):
         for name, api in apis.iteritems():
             if api.is_server:
                 return name
         return ''
+
+    @property
+    def current_server_api(self):
+        for name, api in apis.iteritems():
+            if api.is_server:
+                return api
+        return None
