@@ -156,3 +156,13 @@ class API():
     def get_version(self):
         """Return the version of the API (as defined in the swagger file)"""
         return self.api_spec.version
+
+
+    def model_to_json(self, object):
+        """Take a model instance and return it as a json struct"""
+        return self.api_spec.model_to_json(object)
+
+
+    def json_to_model(self, model_name, j):
+        """Take a json strust and a model name, and return a model instance"""
+        return self.api_spec.json_to_model(model_name, j)

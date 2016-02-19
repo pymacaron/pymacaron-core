@@ -4,6 +4,7 @@ from klue.exceptions import ValidationError
 from bravado_core.spec import Spec
 from bravado_core.operation import Operation
 from bravado_core.marshal import marshal_model
+from bravado_core.unmarshal import unmarshal_model
 
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,15 @@ class ApiSpec():
         model_def = self.swagger_dict['definitions'][model_name]
         log.debug("Marshalling %s into json" % model_name)
         return marshal_model(self.spec, model_def, object)
+
+
+    def json_to_model(self, model_name, j):
+        """Take a json strust and a model name, and return a model instance"""
+        if model_name not in self.swagger_dict['definitions']:
+            raise ValidationError("Swagger spec has no definition for model %s" % model_name)
+        model_def = self.swagger_dict['definitions'][model_name]
+        log.debug("Unmarshalling json into %s" % model_name)
+        return unmarshal_model(self.spec, model_def, j)
 
 
     def call_on_each_endpoint(self, callback):

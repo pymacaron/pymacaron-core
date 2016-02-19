@@ -370,4 +370,34 @@ definitions:
         print("foo: " + pprint.pformat(f))
 
         j = spec.model_to_json(f)
-        self.assertEqual(j['bar']['a'], '1')
+        self.assertDictEqual(j, {
+            'token': 'abcd',
+            'bar': {
+                'a': '1',
+                'b': date.today().isoformat()
+            }
+        })
+
+
+    def test_json_to_model(self):
+        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        spec = ApiSpec(swagger_dict)
+
+        j = {
+            'token': 'abcd',
+            'bar': {
+                'a': '1',
+                'b': date.today().isoformat()
+            }
+        }
+
+        m = spec.json_to_model('Foo', j)
+
+        Foo = spec.definitions['Foo']
+        Bar = spec.definitions['Bar']
+
+        self.assertEqual(m.token, 'abcd')
+        b = m.bar
+        self.assertEqual(b.__class__.__name__, 'Bar')
+        self.assertEqual(b.a, '1')
+        self.assertEqual(str(b.b), str(date.today()) + " 00:00:00")
