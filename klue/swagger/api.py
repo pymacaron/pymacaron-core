@@ -1,10 +1,13 @@
 import pprint
+import types
 import yaml
 import logging
 from bravado_core.spec import Spec
 from klue.swagger.server import spawn_server_api
 from klue.swagger.client import generate_client_callers
 from klue.swagger.spec import ApiSpec
+from klue.exceptions import KlueException
+from klue.utils import get_function
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +86,16 @@ class API():
         #     klue_api.Version(version='1.2.3')   => return a Version object
         for model_name in self.api_spec.definitions:
             model_class = self.api_spec.definitions[model_name]
-            setattr(self.model, model_name, generate_model_instantiator(model_class))
+            model_generator = generate_model_instantiator(model_class)
+
+            # Associate model generator to ApiPool().<api_name>.model.<model_name>
+            setattr(self.model, model_name, model_generator)
+
+            # Make this bravado-core model persistent?
+            spec = swagger_dict['definitions'][model_name]
+            if 'x-persist' in spec:
+                self._make_persistent(model_name, spec['x-persist'])
+
 
         # Auto-generate client callers
         # so we can write
@@ -92,6 +104,46 @@ class API():
         for method, caller in callers_dict.items():
             setattr(self.client, method, caller)
 
+
+    #
+    # WARNING: ugly piece of monkey-patching below. Hopefully will replace
+    # with native bravado-core code in the future...
+    #
+    def _make_persistent(self, model_name, pkg_name):
+        """Monkey-patch object persistence (ex: to/from database) into a
+        bravado-core model class"""
+
+        # Load class at path pkg_name
+        c = get_function(pkg_name)
+        for name in ('load_from_db', 'save_to_db'):
+            if not hasattr(c, name):
+                raise KlueException("Class %s has no static method '%s'" % (pkg_name, name))
+
+        log.info("Making %s persistent via %s" % (model_name, pkg_name))
+
+        # Replace model generator with one that adds 'save_to_db' to every instance
+        model = getattr(self.model, model_name)
+        n = self._wrap_bravado_model_generator(model, c.save_to_db)
+        setattr(self.model, model_name, n)
+
+        # Add class method load_from_db to model generator
+        model = getattr(self.model, model_name)
+        setattr(model, 'load_from_db', c.load_from_db)
+
+    def _wrap_bravado_model_generator(self, model, method):
+
+        def new_creator(*args, **kwargs):
+            log.debug("Calling initial init")
+            r = model(*args, **kwargs)
+            log.debug("Adding save_to_db")
+            r.save_to_db = types.MethodType(method, r)
+            return r
+
+        return new_creator
+
+    #
+    # End of ugly-monkey-patching
+    #
 
     def spawn_api(self, app, decorator=None):
         """Auto-generate server endpoints implementing the API into this Flask app"""

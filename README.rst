@@ -43,8 +43,8 @@ First, load the Swagger specifications of all the services your server will use:
     ApiPool.add('user', yaml_path='user.yaml', timeout=20)
 
 
-Usage - Generating Server
-=========================
+Generating Server
+=================
 
 In the Swagger spec describing the server side, each endpoint that you want to
 have auto-generated into the Flask app should have the 'x-bind-server'
@@ -112,8 +112,8 @@ Implement the 'do_login' endpoint:
             return r
 
 
-Usage - Generating Client
-=========================
+Generating Client
+=================
 
 In the Swagger spec describing the server you want to call, each endpoint that
 you want to have auto-generated into the client library should have the
@@ -160,15 +160,15 @@ To call multiple server endpoints in parallel:
         )
 
 
-Usage - Authentication
-======================
+Authentication
+==============
 
 TODO: describe the 'x-decorate-request' and 'x-decorate-server' attributes of
 the swagger spec + give example of using them to add-on authentication support.
 
 
-Usage - Handling Errors
-=======================
+Handling Errors
+===============
 
 Klue-client-server may raise exceptions, for example if the server stub gets an
 invalid request according to the swagger specification.
@@ -192,6 +192,61 @@ object you wish to return instead. Something like:
     ApiPool.add('public', yaml_path='public.yaml', error_callback=my_error_formatter)
 
 Internal errors raised by klue-client-server are instances of klue.exceptions.KlueException
+
+
+Model persistence
+=================
+
+You can plug-in object persistence into chosen models by way of the swagger
+file.
+
+Specify the 'x-persist' attributes in the swagger definition of models to make
+persistent, with as a value the package path to a custom class, like this:
+
+.. code-block:: yaml
+
+    definitions:
+      Foo:
+        type: object
+        description: a foo
+        x-persist: klue.test.PersistentFoo
+        properties:
+          foo:
+            type: string
+            format: foo
+            description: bar
+
+
+The persistence class must implement the static methods 'load_from_db' and
+'save_to_db', like in:
+
+.. code-block:: python
+
+    class PersistentFoo():
+
+        @staticmethod
+        def load_from_db(*args, **kwargs):
+            # Load object(s) from storage. Return a tupple
+            pass
+
+        @staticmethod
+        def save_to_db(object, *args, **kwargs):
+            # Put object into storage
+            pass
+
+klue-client-server will inject the methods 'save_to_db' and 'load_from_db' into
+the corresponding model class and instances, so you can write:
+
+.. code-block:: python
+
+    # Retrieve instance Foo with id 12345 from storage
+    f = api.model.Foo.load_from_db(id='12345')
+
+    # Put this instance of Foo into storage
+    f.save_to_db()
+
+The details of how to store the objects, as well as which arguments to pass the
+methods and what they return, is all up to you.
 
 
 Install

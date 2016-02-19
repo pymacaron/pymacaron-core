@@ -2,8 +2,9 @@ from importlib import import_module
 from klue.exceptions import KlueException
 
 def get_function(pkgpath):
-    """Take a full path to a python method, for example mypkg.subpkg.method and
-    return the method (after importing the required packages)
+    """Take a full path to a python method or class, for example
+    mypkg.subpkg.method and return the method or class (after importing the
+    required packages)
     """
     # Extract the module and function name from pkgpath
     elems = pkgpath.split('.')
