@@ -1,11 +1,14 @@
 from datetime import date
 import pprint
 import yaml
+import unittest
 from klue.swagger.spec import ApiSpec
 
 
-def test_apispec_constructor():
-    yaml_str = """
+class Tests(unittest.TestCase):
+
+    def test_apispec_constructor__scheme_http(self):
+        yaml_str = """
 swagger: '2.0'
 info:
   title: test
@@ -18,14 +21,16 @@ basePath: /v1
 produces:
   - application/json
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    assert spec.host == 'pnt-login.elasticbeanstalk.com'
-    assert spec.port == 80
-    assert spec.protocol == 'http'
-    assert spec.version == '0.0.1'
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
+        self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
+        self.assertEqual(spec.port, 80)
+        self.assertEqual(spec.protocol, 'http')
+        self.assertEqual(spec.version, '0.0.1')
 
-    yaml_str = """
+
+    def test_apispec_constructor__scheme_https(self):
+        yaml_str = """
 swagger: '2.0'
 info:
   title: test
@@ -38,16 +43,16 @@ basePath: /v1
 produces:
   - application/json
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    assert spec.host == 'pnt-login.elasticbeanstalk.com'
-    assert spec.port == 443
-    assert spec.protocol == 'https'
-    assert spec.version == '1.2.3'
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
+        self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
+        self.assertEqual(spec.port, 443)
+        self.assertEqual(spec.protocol, 'https')
+        self.assertEqual(spec.version, '1.2.3')
 
 
-def test_apispec_constructor_https_default():
-    yaml_str = """
+    def test_apispec_constructor__https_is_default(self):
+        yaml_str = """
 swagger: '2.0'
 info:
   title: test
@@ -61,20 +66,20 @@ basePath: /v1
 produces:
   - application/json
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    assert spec.host == 'pnt-login.elasticbeanstalk.com'
-    assert spec.port == 443
-    assert spec.protocol == 'https'
-    assert spec.version == '0.0.1'
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
+        self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
+        self.assertEqual(spec.port, 443)
+        self.assertEqual(spec.protocol, 'https')
+        self.assertEqual(spec.version, '0.0.1')
 
 
-def test_call_on_each_endpoint_invalid_produces():
-
-    def foo():
+    def foo(self):
         pass
 
-    yaml_str = """
+
+    def test_call_on_each_endpoint__missing_produces(self):
+        yaml_str = """
 swagger: '2.0'
 host: pnt-login.elasticbeanstalk.com
 schemes:
@@ -91,17 +96,15 @@ paths:
           type: string
       x-bind-server: pnt_login.handlers.do_login
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    try:
-        spec.call_on_each_endpoint(foo)
-    except Exception as e:
-        print("error: " + str(e))
-        assert "Swagger api has no 'produces' section" in str(e)
-    else:
-        assert 0
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
 
-    yaml_str = """
+        with self.assertRaisesRegexp(Exception, "Swagger api has no 'produces' section"):
+            spec.call_on_each_endpoint(self.foo)
+
+
+    def test_call_on_each_endpoint__invalid_produces(self):
+        yaml_str = """
 swagger: '2.0'
 host: pnt-login.elasticbeanstalk.com
 schemes:
@@ -120,16 +123,15 @@ paths:
         - foo/bar
       x-bind-server: pnt_login.handlers.do_login
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    try:
-        spec.call_on_each_endpoint(foo)
-    except Exception as e:
-        assert "Only 'application/json' is supported" in str(e)
-    else:
-        assert 0
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
 
-    yaml_str = """
+        with self.assertRaisesRegexp(Exception, "Only 'application/json' is supported"):
+            spec.call_on_each_endpoint(self.foo)
+
+
+    def test_call_on_each_endpoint__too_many_produces(self):
+        yaml_str = """
 swagger: '2.0'
 host: pnt-login.elasticbeanstalk.com
 schemes:
@@ -149,21 +151,17 @@ paths:
         - bar/baz
       x-bind-server: pnt_login.handlers.do_login
 """
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    try:
-        spec.call_on_each_endpoint(foo)
-    except Exception as e:
-        assert "Expecting only one type" in str(e)
-    else:
-        assert 0
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
+
+        with self.assertRaisesRegexp(Exception, "Expecting only one type"):
+            spec.call_on_each_endpoint(self.foo)
 
 
-call_count = 0
+    call_count = 0
 
-def test_call_on_each_endpoint():
-
-    yaml_str = """
+    def test_call_on_each_endpoint(self):
+        yaml_str = """
 swagger: '2.0'
 info:
   title: test
@@ -267,56 +265,54 @@ definitions:
         description: MD5 of user''s password, truncated to 16 first hexadecimal characters.
 """
 
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
+        Tests.call_count = 0
 
-    def test_callback(data):
-        print("Looking at %s %s" % (data.method, data.path))
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
 
-        global call_count
-        call_count = call_count + 1
+        def test_callback(data):
+            print("Looking at %s %s" % (data.method, data.path))
 
-        assert type(data.operation).__name__ == 'Operation'
+            Tests.call_count = Tests.call_count + 1
 
-        if data.path == '/v1/auth/logout/':
-            assert data.method == 'GET'
-            assert data.handler_server == 'pnt_login.babar'
-            assert data.handler_client is None
-            assert data.decorate_server is None
-            assert data.decorate_request == 'foo.bar.baz'
-            assert data.param_in_body is False
-            assert data.param_in_query is True
-            assert data.no_params is False
+            self.assertEqual(type(data.operation).__name__, 'Operation')
 
-        elif data.path == '/v1/auth/login':
-            assert data.method == 'POST'
-            assert data.handler_server == 'pnt_login.handlers.do_login'
-            assert data.handler_client == 'login'
-            assert data.decorate_server is None
-            assert data.decorate_request is None
-            assert data.param_in_body is True
-            assert data.param_in_query is False
-            assert data.no_params is False
+            if data.path == '/v1/auth/logout/':
+                self.assertEqual(data.method, 'GET')
+                self.assertEqual(data.handler_server, 'pnt_login.babar')
+                self.assertIsNone(data.handler_client)
+                self.assertIsNone(data.decorate_server)
+                self.assertEqual(data.decorate_request, 'foo.bar.baz')
+                self.assertFalse(data.param_in_body)
+                self.assertTrue(data.param_in_query)
+                self.assertFalse(data.no_params)
 
-        elif data.path == '/v1/version':
-            assert data.method == 'GET'
-            assert data.handler_server == 'do_version'
-            assert data.handler_client is None
-            assert data.decorate_request is None
-            assert data.decorate_server == 'foo.bar.baz'
-            assert data.param_in_body is False
-            assert data.param_in_query is False
-            assert data.no_params is True
+            elif data.path == '/v1/auth/login':
+                self.assertEqual(data.method, 'POST')
+                self.assertEqual(data.handler_server, 'pnt_login.handlers.do_login')
+                self.assertEqual(data.handler_client, 'login')
+                self.assertIsNone(data.decorate_server)
+                self.assertIsNone(data.decorate_request)
+                self.assertTrue(data.param_in_body)
+                self.assertFalse(data.param_in_query)
+                self.assertFalse(data.no_params)
 
-    spec.call_on_each_endpoint(test_callback)
+            elif data.path == '/v1/version':
+                self.assertEqual(data.method, 'GET')
+                self.assertEqual(data.handler_server, 'do_version')
+                self.assertIsNone(data.handler_client)
+                self.assertIsNone(data.decorate_request)
+                self.assertEqual(data.decorate_server, 'foo.bar.baz')
+                self.assertFalse(data.param_in_body)
+                self.assertFalse(data.param_in_query)
+                self.assertTrue(data.no_params)
 
-    assert call_count == 3
+        spec.call_on_each_endpoint(test_callback)
+
+        self.assertEqual(Tests.call_count, 3)
 
 
-def test_model_to_json():
-    # Test model_to_json on a deep structure, with object in object
-
-    yaml_str = """
+    yaml_complex_model = """
 swagger: '2.0'
 info:
   title: test
@@ -354,21 +350,24 @@ definitions:
         description: b
 """
 
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
 
-    Foo = spec.definitions['Foo']
-    Bar = spec.definitions['Bar']
+    # Test model_to_json on a deep structure, with object in object
+    def test_model_to_json(self):
+        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        spec = ApiSpec(swagger_dict)
 
-    f = Foo(
-        token='abcd',
-        bar=Bar(
-            a='1',
-            b=date.today()
+        Foo = spec.definitions['Foo']
+        Bar = spec.definitions['Bar']
+
+        f = Foo(
+            token='abcd',
+            bar=Bar(
+                a='1',
+                b=date.today()
+            )
         )
-    )
 
-    print("foo: " + pprint.pformat(f))
+        print("foo: " + pprint.pformat(f))
 
-    j = spec.model_to_json(f)
-    assert j['bar']['a'] == '1'
+        j = spec.model_to_json(f)
+        self.assertEqual(j['bar']['a'], '1')
