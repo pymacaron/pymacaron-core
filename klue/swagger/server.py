@@ -1,6 +1,7 @@
 import pprint
 import jsonschema
 import logging
+import uuid
 from flask import request, jsonify
 from flask.ext.cors import cross_origin
 from klue.exceptions import KlueException, ValidationError, add_error_handlers
@@ -13,8 +14,12 @@ from bravado_core.request import IncomingRequest, unmarshal_request
 log = logging.getLogger(__name__)
 
 
-# TODO: add authentication when relevant
-# TODO: support in-query parameters
+try:
+    from flask import _app_ctx_stack as stack
+except ImportError:
+    from flask import _request_ctx_stack as stack
+
+
 def spawn_server_api(app, api_spec, error_callback, decorator):
     """Take a a Flask app and a swagger file in YAML format describing a REST
     API, and populate the app with routes handling all the paths and methods
@@ -52,6 +57,12 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
 
     def handler_wrapper():
         log.info("Calling %s" % handler_func.__name__)
+
+        # Get caller's klue-call-id or generate one
+        call_id = request.headers.get('KlueCallID', None)
+        if not call_id:
+            call_id = str(uuid.uuid4())
+        stack.top.call_id = call_id
 
         req = FlaskRequestProxy(request)
 

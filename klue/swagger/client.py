@@ -2,12 +2,19 @@ import grequests
 import pprint
 import jsonschema
 import logging
+import flask
 from klue.exceptions import KlueException, ValidationError
 from klue.utils import get_function
 from bravado_core.response import unmarshal_response, OutgoingResponse
 
 
 log = logging.getLogger(__name__)
+
+
+try:
+    from flask import _app_ctx_stack as stack
+except ImportError:
+    from flask import _request_ctx_stack as stack
 
 
 def generate_client_callers(spec, timeout, error_callback):
@@ -62,6 +69,9 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         headers = {}
         data = None
         params = None
+
+        if hasattr(stack.top, 'call_id'):
+            headers['KlueCallID'] = stack.top.call_id
 
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs

@@ -249,6 +249,30 @@ The details of how to store the objects, as well as which arguments to pass the
 methods and what they return, is all up to you.
 
 
+Call ID
+=======
+
+If you have multiple micro-services passing objects among them, it is
+convenient to mark all responses initiated by a given call to your public
+facing API by a common unique call ID.
+
+Klue does this automagically for you, by way of generating and passing around a
+custom HTTP header named 'KlueCallerID'.
+
+To access this call ID (from an analytics reporting module for example), just
+do:
+
+.. code-block:: python
+
+    try:
+        from flask import _app_ctx_stack as stack
+    except ImportError:
+        from flask import _request_ctx_stack as stack
+
+    if hasattr(stack.top, 'call_id'):
+        call_id = stack.top.call_id
+
+
 Install
 -------
 
