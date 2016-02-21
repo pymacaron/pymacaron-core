@@ -14,6 +14,9 @@ class ValidationError(KlueException):
 class InternalServerError(KlueException):
     status_code = 500
 
+class MergeApisException(KlueException):
+    status_code = 500
+
 
 def add_error_handlers(app):
     """Add custom error handlers for KlueExceptions to the app"""

@@ -24,10 +24,10 @@ class APIModels():
     pass
 
 
-def generate_model_instantiator(model_class):
+def generate_model_instantiator(model_name, definitions):
     # We need this to localize the value of model_class
     def instantiate_model(*args, **kwargs):
-        return model_class(*args, **kwargs)
+        return definitions.get(model_name)(*args, **kwargs)
     return instantiate_model
 
 
@@ -90,8 +90,7 @@ class API():
         # Ex:
         #     klue_api.Version(version='1.2.3')   => return a Version object
         for model_name in self.api_spec.definitions:
-            model_class = self.api_spec.definitions[model_name]
-            model_generator = generate_model_instantiator(model_class)
+            model_generator = generate_model_instantiator(model_name, self.api_spec.definitions)
 
             # Associate model generator to ApiPool().<api_name>.model.<model_name>
             setattr(self.model, model_name, model_generator)
