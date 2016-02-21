@@ -67,7 +67,7 @@ definitions:
 class Tests(unittest.TestCase):
 
     def test_custom_format(self):
-        api = API(yaml_str=yaml_str, formats=[foo_format])
+        api = API('somename', yaml_str=yaml_str, formats=[foo_format])
 
         self.assertTrue(hasattr(api.model, 'Foo'))
 

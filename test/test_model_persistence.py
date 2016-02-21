@@ -36,7 +36,7 @@ definitions:
 class Tests(unittest.TestCase):
 
     def test_x_persist(self):
-        api = API(yaml_str=yaml_str)
+        api = API('somename', yaml_str=yaml_str)
 
         Foo = api.model.Foo
         self.assertTrue(hasattr(Foo, 'load_from_db'))
@@ -50,7 +50,7 @@ class Tests(unittest.TestCase):
     def test_load_from_db(self, m):
         m.return_value = 'foobar'
 
-        api = API(yaml_str=yaml_str)
+        api = API('somename', yaml_str=yaml_str)
 
         f = api.model.Foo.load_from_db(1, 2, a=1, b=2)
 
@@ -61,7 +61,7 @@ class Tests(unittest.TestCase):
     def test_load_from_db__return_tupple(self, m):
         m.return_value = ('foobar', 'barbaz')
 
-        api = API(yaml_str=yaml_str)
+        api = API('somename', yaml_str=yaml_str)
 
         a, b = api.model.Foo.load_from_db(1, 2, a=1, b=2)
 
@@ -71,7 +71,7 @@ class Tests(unittest.TestCase):
 
     @patch("klue.test.PersistentFoo.save_to_db")
     def test_save_to_db(self, m):
-        api = API(yaml_str=yaml_str)
+        api = API('somename', yaml_str=yaml_str)
 
         f = api.model.Foo()
         f.save_to_db(1, 2, a=1, b=2)

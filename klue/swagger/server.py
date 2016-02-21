@@ -20,7 +20,7 @@ except ImportError:
     from flask import _request_ctx_stack as stack
 
 
-def spawn_server_api(app, api_spec, error_callback, decorator):
+def spawn_server_api(api_name, app, api_spec, error_callback, decorator):
     """Take a a Flask app and a swagger file in YAML format describing a REST
     API, and populate the app with routes handling all the paths and methods
     declared in the swagger file.
@@ -33,7 +33,7 @@ def spawn_server_api(app, api_spec, error_callback, decorator):
         handler_func = get_function(endpoint.handler_server)
 
         # Generate api endpoint around that handler
-        handler_wrapper = _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, decorator)
+        handler_wrapper = _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_callback, decorator)
 
         # Bind handler to the API path
         log.info("Binding %s %s ==> %s" % (endpoint.method, endpoint.path, endpoint.handler_server))
@@ -47,7 +47,7 @@ def spawn_server_api(app, api_spec, error_callback, decorator):
     add_error_handlers(app)
 
 
-def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, global_decorator):
+def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_callback, global_decorator):
     """Generate a handler method for the given url method+path and operation"""
 
     # Decorate the handler function, if Swagger spec tells us to
@@ -64,6 +64,15 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
             call_id = str(uuid.uuid4())
         stack.top.call_id = call_id
 
+        # Append current server to call path, or start one
+        call_path = request.headers.get('KlueCallPath', None)
+        if call_path:
+            call_path = "%s.%s" % (call_path, api_name)
+        else:
+            call_path = api_name
+        stack.top.call_path = call_path
+
+        # Turn the flask request into something bravado-core can process...
         req = FlaskRequestProxy(request)
 
         try:
@@ -74,6 +83,8 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
         except jsonschema.exceptions.ValidationError as e:
             return error_callback(ValidationError(str(e)))
 
+        # Call the endpoint, with proper parameters depending on whether
+        # parameters are in body, query or url
         if endpoint.param_in_body:
             assert len(parameters) == 1
             values = list(parameters.values())
@@ -85,6 +96,7 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
         else:
             return error_callback(KlueException("WTF? expected parameters are neither in query nor in body."))
 
+        # Did we get the expected response?
         if not result:
             return error_callback(KlueException("Have nothing to send in response"))
 
@@ -92,10 +104,15 @@ def _generate_handler_wrapper(api_spec, endpoint, handler_func, error_callback, 
             return error_callback(KlueException("Method %s did not return a class instance but a %s" %
                                                 (endpoint.handler_server, type(result))))
 
+        # If it's already a flask Response, just pass it through.
+        # Errors in particular may be either passed back as flask Responses, or
+        # raised as exceptions to be caught and formatted by the error_callback
         result_type = result.__module__ + "." + result.__class__.__name__
         if result_type == 'flask.wrappers.Response':
-            # Already a flask Response. No need to marshal
             return result
+
+        # Otherwise, assume no error occured and make a flask Response out of
+        # the result.
 
         # TODO: check that result is an instance of a model expected as response from this endpoint
         result_json = api_spec.model_to_json(result)

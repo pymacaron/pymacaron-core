@@ -92,8 +92,18 @@ definitions:
 
 """
 
+
+def test_api_constructor():
+    api = API('somename', yaml_str=yaml_str)
+    assert api.name == 'somename'
+    assert api.api_spec
+    assert api.client_timeout == 10
+    assert api.error_callback
+    assert not api.is_server
+
+
 def test_api_models():
-    api = API(yaml_str=yaml_str)
+    api = API('somename', yaml_str=yaml_str)
 
     # Check that the models work
     assert hasattr(api.model, 'Param')
@@ -118,12 +128,12 @@ def test_api_models():
 
 
 def test_api_get_version():
-    api = API(yaml_str=yaml_str)
+    api = API('somename', yaml_str=yaml_str)
     assert api.get_version() == '0.0.1'
 
 
 def test_api_clients():
-    api = API(yaml_str=yaml_str)
+    api = API('somename', yaml_str=yaml_str)
     assert hasattr(api.client, 'do_test')
     assert hasattr(api.client, 'do_more_test')
     assert api.client.do_test != api.client.do_more_test

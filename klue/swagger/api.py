@@ -63,8 +63,13 @@ class API():
     # Flag: true if this api has spawned_api
     is_server = False
 
-    def __init__(self, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None):
+    # The api's name
+    name = None
+
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None):
         """An API Specification"""
+
+        self.name = name
 
         if yaml_path:
             log.info("Loading swagger file at %s" % yaml_path)
@@ -150,7 +155,7 @@ class API():
         if decorator:
             assert type(decorator).__name__ == 'function'
         self.is_server = True
-        return spawn_server_api(app, self.api_spec, self.error_callback, decorator)
+        return spawn_server_api(self.name, app, self.api_spec, self.error_callback, decorator)
 
 
     def get_version(self):

@@ -249,8 +249,8 @@ The details of how to store the objects, as well as which arguments to pass the
 methods and what they return, is all up to you.
 
 
-Call ID
-=======
+Call ID and Call Path
+=====================
 
 If you have multiple micro-services passing objects among them, it is
 convenient to mark all responses initiated by a given call to your public
@@ -259,8 +259,15 @@ facing API by a common unique call ID.
 Klue does this automagically for you, by way of generating and passing around a
 custom HTTP header named 'KlueCallerID'.
 
-To access this call ID (from an analytics reporting module for example), just
-do:
+In the same spirit, every subsequent call initiated by a call to the public
+facing API registers a path via the 'KlueCallerPath' header, hence telling each
+server the list of servers that have been called between the public facing API
+and the current server.
+
+Those are highly usefull when mapping the tree of internal API calls initiated
+by a given public API call, for analytic purposes.
+
+To access the call ID and call path:
 
 .. code-block:: python
 
@@ -271,6 +278,13 @@ do:
 
     if hasattr(stack.top, 'call_id'):
         call_id = stack.top.call_id
+        # call_id is a uuid.uuid4 string
+
+    if hasattr(stack.top, 'call_path'):
+        call_path = stack.top.call_pat
+        # call_path is a '.'-separated list of api names
+        # For example 'public.user.login' indicates we are in server 'login',
+        # by way of servers 'user' then 'public'.
 
 
 Install

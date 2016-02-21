@@ -35,7 +35,7 @@ class ApiPool():
 
     @classmethod
     def add(self, name, **kwargs):
-        api = API(**kwargs)
+        api = API(name, **kwargs)
         global apis
         apis[name] = api
         setattr(ApiPool, name, api)

@@ -51,7 +51,7 @@ def gen_app(ystr):
     swagger_dict = yaml.load(ystr)
     spec = ApiSpec(swagger_dict)
     app = Flask('test')
-    spawn_server_api(app, spec, default_error_callback, None)
+    spawn_server_api('somename', app, spec, default_error_callback, None)
     return app, spec
 
 def assert_ok_reply(r, token):
