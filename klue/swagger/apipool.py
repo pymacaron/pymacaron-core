@@ -82,7 +82,6 @@ class ApiPool():
         # First pass: find duplicate and keep only one model of each (fail if
         # duplicates have same name but different definitions)
         for api_name, api in apis.iteritems():
-            #for model_name, model_class in api.api_spec.definitions.iteritems():
             for model_name, model_def in api.api_spec.swagger_dict['definitions'].iteritems():
                 if model_name in models:
                     other_api_name, other_model_def, _ = models.get(model_name)
