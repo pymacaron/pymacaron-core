@@ -3,7 +3,7 @@ import pprint
 import jsonschema
 import logging
 import flask
-from klue import exceptions
+from klue.exceptions import KlueException, ValidationError
 from klue.utils import get_function
 from bravado_core.response import unmarshal_response, OutgoingResponse
 
@@ -51,8 +51,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
 
     method = endpoint.method.lower()
     if method not in ('get', 'post'):
-        return error_callback(exceptions.KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                                                       (endpoint.method, endpoint.path)))
+        return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                                            (endpoint.method, endpoint.path)))
 
     grequests_method = getattr(grequests, method)
     if decorator:
@@ -93,18 +93,19 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
                                 headers=headers,
                                 timeout=timeout)
 
-        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path)
+        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path, error_callback)
 
     return client
 
 
 class ClientCaller():
 
-    def __init__(self, greq, operation, method, path):
+    def __init__(self, greq, operation, method, path, error_callback):
         self.operation = operation
         self.greq = greq
         self.method = method
         self.path = path
+        self.error_callback = error_callback
 
     def call(self):
         # TODO: add retry handler to map
@@ -121,10 +122,9 @@ class ClientCaller():
                          (self.method, self.path, response.text))
             else:
                 # Unknown exception...
-                k = exceptions.KlueException(response.text)
-                k.status = response.status_code
-                k.error = 'UNKNOWN_REMOTE_ERROR'
-                return error_callback(k)
+                k = KlueException(response.text)
+                k.status_code = response.status_code
+                return self.error_callback(k)
 
         result = self._unmarshal(response)
         return result
@@ -135,8 +135,9 @@ class ClientCaller():
         try:
             result = unmarshal_response(response, self.operation)
         except jsonschema.exceptions.ValidationError as e:
-            new_e = exceptions.ValidationError(str(e))
-            return new_e.http_reply()
+            k = ValidationError(str(e))
+            k.status_code = 500
+            return self.error_callback(k)
         return result
 
 def async_call(*client_callers):
