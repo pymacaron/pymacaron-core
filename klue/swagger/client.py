@@ -3,7 +3,7 @@ import pprint
 import jsonschema
 import logging
 import flask
-from klue.exceptions import KlueException, ValidationError
+from klue import exceptions
 from klue.utils import get_function
 from bravado_core.response import unmarshal_response, OutgoingResponse
 
@@ -51,8 +51,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
 
     method = endpoint.method.lower()
     if method not in ('get', 'post'):
-        return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                                            (endpoint.method, endpoint.path)))
+        return error_callback(exceptions.KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                                                       (endpoint.method, endpoint.path)))
 
     grequests_method = getattr(grequests, method)
     if decorator:
@@ -82,7 +82,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         elif endpoint.param_in_body:
             # The body parameter is the first elem in *args
             if len(args) != 1:
-                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
+                return error_callback(exceptions.ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = spec.model_to_json(args[0])
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
@@ -121,7 +121,7 @@ class ClientCaller():
                          (self.method, self.path, response.text))
             else:
                 # Unknown exception...
-                k = KlueException(response.text)
+                k = exceptions.KlueException(response.text)
                 k.status = response.status_code
                 k.error = 'UNKNOWN_REMOTE_ERROR'
                 return error_callback(k)
@@ -135,7 +135,7 @@ class ClientCaller():
         try:
             result = unmarshal_response(response, self.operation)
         except jsonschema.exceptions.ValidationError as e:
-            new_e = ValidationError(str(e))
+            new_e = exceptions.ValidationError(str(e))
             return new_e.http_reply()
         return result
 
