@@ -82,7 +82,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         elif endpoint.param_in_body:
             # The body parameter is the first elem in *args
             if len(args) != 1:
-                return error_callback(exceptions.ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
+                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = spec.model_to_json(args[0])
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
