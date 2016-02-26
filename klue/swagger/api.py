@@ -76,6 +76,8 @@ class API():
             swagger_dict = yaml.load(open(yaml_path))
         elif yaml_str:
             swagger_dict = yaml.load(yaml_str)
+        else:
+            raise Exception("No swagger file specified")
 
         self.api_spec = ApiSpec(swagger_dict, formats)
 
