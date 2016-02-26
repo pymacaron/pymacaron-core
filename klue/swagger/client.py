@@ -109,17 +109,18 @@ class ClientCaller():
 
     def call(self):
         # TODO: add retry handler to map
+        log.info("Calling %s %s" % (self.method, self.path))
         responses = grequests.map([self.greq])
         assert len(responses) == 1
         response = responses[0]
 
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
+            log.warn("Call to %s %s returns error: %s" % (self.method, self.path, response.text))
             if 'error_description' in response.text:
                 # We got a KlueException: unmarshal it and return as valid return value
                 # UGLY FRAGILE CODE. To be replaced by proper exception scheme
-                log.warn("Call to %s %s returns error: %s" %
-                         (self.method, self.path, response.text))
+                pass
             else:
                 # Unknown exception...
                 k = KlueException(response.text)
@@ -127,6 +128,7 @@ class ClientCaller():
                 return self.error_callback(k)
 
         result = self._unmarshal(response)
+        log.info("Call to %s %s returned an instance of %s" % (self.method, self.path, type(result)))
         return result
 
     def _unmarshal(self, response):
