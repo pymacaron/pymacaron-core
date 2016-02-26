@@ -125,4 +125,3 @@ class ApiPool():
         _cleanup(m2)
 
         return cmp(m1, m2)
-
