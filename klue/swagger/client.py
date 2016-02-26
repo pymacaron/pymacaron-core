@@ -73,7 +73,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         if hasattr(stack.top, 'call_id'):
             headers['KlueCallID'] = stack.top.call_id
         if hasattr(stack.top, 'call_path'):
-            headers['KlueCallPath'] = stack.top.call_id
+            headers['KlueCallPath'] = stack.top.call_path
 
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs
