@@ -137,9 +137,7 @@ class API():
     def _wrap_bravado_model_generator(self, model, method):
 
         def new_creator(*args, **kwargs):
-            log.debug("Calling initial init")
             r = model(*args, **kwargs)
-            log.debug("Adding save_to_db")
             r.save_to_db = types.MethodType(method, r)
             return r
 
