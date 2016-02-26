@@ -1,5 +1,6 @@
 import pprint
 import logging
+import copy
 from klue.swagger.api import API
 from klue.exceptions import MergeApisException
 from bravado_core.spec import Spec
@@ -86,7 +87,8 @@ class ApiPool():
                 if model_name in models:
                     other_api_name, other_model_def, _ = models.get(model_name)
                     log.info("Model %s in %s is a duplicate of one in %s" % (model_name, api_name, other_api_name))
-                    if cmp(model_def, other_model_def) != 0:
+
+                    if ApiPool._cmp_models(model_def, other_model_def) != 0:
                         raise MergeApisException("Cannot merge apis! Model %s exists in apis %s and %s but have different definitions:\n[%s]\n[%s]"
                                                  % (model_name, api_name, other_api_name, pprint.pformat(model_def), pprint.pformat(other_model_def)))
                 else:
@@ -99,3 +101,28 @@ class ApiPool():
             for model_name in api.api_spec.definitions.keys():
                 _, _, model_class = models.get(model_name)
                 api.api_spec.definitions[model_name] = model_class
+
+    @classmethod
+    def _cmp_models(self, m1, m2):
+        """Compare two models from different swagger APIs and tell if they are
+        equal (return 0), or not (return != 0)"""
+
+        # Don't alter m1/m2 by mistake
+        m1 = copy.deepcopy(m1)
+        m2 = copy.deepcopy(m2)
+
+        # Remove keys added by bravado-core
+        def _cleanup(d):
+            """Remove all keys in the blacklist"""
+            if 'x-model' in d:
+                del d['x-model']
+            if 'properties' in d:
+                for v in d['properties'].values():
+                    if 'x-scope' in v:
+                        del v['x-scope']
+
+        _cleanup(m1)
+        _cleanup(m2)
+
+        return cmp(m1, m2)
+

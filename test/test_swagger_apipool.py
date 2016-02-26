@@ -87,3 +87,24 @@ def test_apipool_current_server_name_api():
 
     assert ApiPool().current_server_name == 'foo'
     assert ApiPool().current_server_api == api
+
+def test__cmp_models():
+    assert ApiPool._cmp_models(
+        {'a': 1, 'b': 2},
+        {'a': 1, 'b': 2}
+    ) == 0
+
+    assert ApiPool._cmp_models(
+        {'a': 1},
+        {'a': 1, 'b': 2}
+    ) != 0
+
+    assert ApiPool._cmp_models(
+        {'a': 1, 'b': 2, 'x-model': 12},
+        {'a': 1, 'b': 2}
+    ) == 0
+
+    assert ApiPool._cmp_models(
+        {'a': 1, 'b': 2, 'x-model': 12, 'properties': {'foo': {'$ref': 'a'}}},
+        {'a': 1, 'b': 2, 'properties': {'foo': {'$ref': 'a', 'x-scope': [1, 2]}}},
+    ) == 0
