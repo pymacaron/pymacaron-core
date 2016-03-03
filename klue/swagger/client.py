@@ -70,6 +70,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         data = None
         params = None
 
+        custom_url = url
+
         if hasattr(stack.top, 'call_id'):
             headers['KlueCallID'] = stack.top.call_id
         if hasattr(stack.top, 'call_path'):
@@ -84,10 +86,15 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             if len(args) != 1:
                 return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = spec.model_to_json(args[0])
+        elif endpoint.param_in_path:
+            # Client expects arguments as a dict, not as a list
+            assert len(args) == 0
+            print("got url and params: " + pprint.pformat([url, kwargs]))
+            custom_url = _format_swagger_url(url, kwargs)
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
-        greq = grequests_method(url,
+        greq = grequests_method(custom_url,
                                 data=data,
                                 params=params,
                                 headers=headers,
@@ -96,6 +103,14 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path, error_callback)
 
     return client
+
+
+def _format_swagger_url(url, params):
+    # TODO: make this code more robust: error if some params are left unmatched
+    # or if url still contains placeholders after replacing
+    for name, value in params.iteritems():
+        url = url.replace("{%s}" % name, str(value))
+    return url
 
 
 class ClientCaller():

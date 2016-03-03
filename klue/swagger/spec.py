@@ -22,6 +22,7 @@ class EndpointData():
 
     param_in_body = False
     param_in_query = False
+    param_in_path = False
     no_params = False
 
     def __init__(self, path, method):
@@ -148,7 +149,7 @@ class ApiSpec():
                     elif params[0]['in'] == 'query':
                         data.param_in_query = True
                     elif params[0]['in'] == 'path':
-                        raise Exception("'path' parameters are not supported (%s %s)" % (method, path))
+                        data.param_in_path = True
                     else:
                         raise Exception("%s %s uses an unsupported parameter model" % (method, path))
                 else:
