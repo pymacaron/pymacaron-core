@@ -5,7 +5,7 @@ from httplib import HTTPResponse
 from mock import patch, MagicMock
 from klue.swagger.api import default_error_callback
 from klue.swagger.spec import ApiSpec
-from klue.swagger.client import generate_client_callers, _format_swagger_url
+from klue.swagger.client import generate_client_callers, _format_flask_url
 from klue.exceptions import KlueException, ValidationError
 
 def _slurp_yaml(yaml_str):
@@ -220,9 +220,9 @@ def test_client_with_auth_required():
     pass
 
 
-def test__format_swagger_url():
-    u = _format_swagger_url(
-        "/v1/seller/{item_id}/{path}/foo",
+def test__format_flask_url():
+    u = _format_flask_url(
+        "/v1/seller/<item_id>/<path>/foo",
         {
             'item_id': '1234',
             'path': 'abcd',
@@ -230,8 +230,8 @@ def test__format_swagger_url():
     )
     assert u == "/v1/seller/1234/abcd/foo"
 
-    u = _format_swagger_url(
-        "/v1/seller/{item_id}/{path}/foo/{item_id}",
+    u = _format_flask_url(
+        "/v1/seller/<item_id>/<path>/foo/<item_id>",
         {
             'item_id': 1234,
             'path': 'abcd',

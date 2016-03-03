@@ -90,7 +90,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             # Client expects arguments as a dict, not as a list
             assert len(args) == 0
             print("got url and params: " + pprint.pformat([url, kwargs]))
-            custom_url = _format_swagger_url(url, kwargs)
+            custom_url = _format_flask_url(url, kwargs)
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
@@ -105,11 +105,11 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
     return client
 
 
-def _format_swagger_url(url, params):
+def _format_flask_url(url, params):
     # TODO: make this code more robust: error if some params are left unmatched
     # or if url still contains placeholders after replacing
     for name, value in params.iteritems():
-        url = url.replace("{%s}" % name, str(value))
+        url = url.replace("<%s>" % name, str(value))
     return url
 
 
