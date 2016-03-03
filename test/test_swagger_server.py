@@ -308,3 +308,59 @@ def test_unmarshal_request_error__wrong_argument_format(func):
 #         assert j['error'] == 'INVALID_PARAMETER'
 #         assert j['status'] == 400
 #         assert "email' is a required property" in j['error_description']
+
+
+yaml_in_path = yaml_base + """
+paths:
+  /v1/in/{item}/foo/{path}:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: path
+          name: item
+          description: foooo
+          required: true
+          type: string
+        - in: path
+          name: path
+          description: baaar
+          required: true
+          type: string
+      produces:
+        - application/json
+      x-bind-server: klue.test.return_token
+      x-auth-required: false
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+"""
+
+@patch('klue.test.return_token')
+def test_swagger_server_param_in_path(func):
+    app, spec = gen_app(yaml_in_path)
+
+    func.__name__ = 'return_token'
+    SessionToken = spec.definitions['SessionToken']
+    func.return_value = SessionToken(token='456')
+
+    with app.test_client() as c:
+        r = c.get('/v1/in/1234/foo/bob234')
+        assert_ok_reply(r, '456')
+        func.assert_called_once_with(item='1234', path='bob234')
+
+
+# @patch('klue.test.return_token')
+# def test_swagger_server_param_in_path__missing_required_param(func):
+#     app, spec = gen_app(yaml_in_query)
+
+#     func.__name__ = 'return_token'
+#     SessionToken = spec.definitions['SessionToken']
+#     func.return_value = SessionToken(token='456')
+
+#     with app.test_client() as c:
+#         r = c.get('/v1/in/query?bar=bbbb')
+#         assert_error(r, 400, 'BAD REQUEST')
+#         func.assert_not_called()

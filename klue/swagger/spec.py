@@ -150,6 +150,8 @@ class ApiSpec():
                         data.param_in_query = True
                     elif params[0]['in'] == 'path':
                         data.param_in_path = True
+                        # Substitute {...} with <...> in path, to make a Flask friendly path
+                        data.path = data.path.replace('{', '<').replace('}', '>')
                     else:
                         raise Exception("%s %s uses an unsupported parameter model" % (method, path))
                 else:

@@ -55,7 +55,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         endpoint_decorator = get_function(endpoint.decorate_server)
         handler_func = endpoint_decorator(handler_func)
 
-    def handler_wrapper():
+    def handler_wrapper(**path_params):
         log.info("Calling %s" % handler_func.__name__)
 
         # Get caller's klue-call-id or generate one
@@ -75,13 +75,14 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         # Turn the flask request into something bravado-core can process...
         req = FlaskRequestProxy(request)
 
-        try:
-            # Note: unmarshall validates parameters but does not fail
-            # if extra unknown parameters are submitted
-            parameters = unmarshal_request(req, endpoint.operation)
-            # Example of parameters: {'body': RegisterCredentials()}
-        except jsonschema.exceptions.ValidationError as e:
-            return error_callback(ValidationError(str(e)))
+        if not endpoint.param_in_path:
+            try:
+                # Note: unmarshall validates parameters but does not fail
+                # if extra unknown parameters are submitted
+                parameters = unmarshal_request(req, endpoint.operation)
+                # Example of parameters: {'body': RegisterCredentials()}
+            except jsonschema.exceptions.ValidationError as e:
+                return error_callback(ValidationError(str(e)))
 
         # Call the endpoint, with proper parameters depending on whether
         # parameters are in body, query or url
@@ -91,6 +92,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             result = handler_func(values[0])
         elif endpoint.param_in_query:
             result = handler_func(**parameters)
+        elif endpoint.param_in_path:
+            result = handler_func(**path_params)
         elif endpoint.no_params:
             result = handler_func()
         else:
