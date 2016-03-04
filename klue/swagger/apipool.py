@@ -114,8 +114,9 @@ class ApiPool():
         # Remove keys added by bravado-core
         def _cleanup(d):
             """Remove all keys in the blacklist"""
-            if 'x-model' in d:
-                del d['x-model']
+            for k in ('x-model', 'x-persist'):
+                if k in d:
+                    del d[k]
             if 'properties' in d:
                 for v in d['properties'].values():
                     if 'x-scope' in v:
