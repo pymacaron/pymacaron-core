@@ -66,7 +66,7 @@ class API():
     # The api's name
     name = None
 
-    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None):
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True):
         """An API Specification"""
 
         self.name = name
@@ -98,10 +98,10 @@ class API():
             setattr(self.model, model_name, model_generator)
 
             # Make this bravado-core model persistent?
-            spec = swagger_dict['definitions'][model_name]
-            if 'x-persist' in spec:
-                self._make_persistent(model_name, spec['x-persist'])
-
+            if do_persist:
+                spec = swagger_dict['definitions'][model_name]
+                if 'x-persist' in spec:
+                    self._make_persistent(model_name, spec['x-persist'])
 
         # Auto-generate client callers
         # so we can write
