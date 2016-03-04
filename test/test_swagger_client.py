@@ -102,7 +102,7 @@ def test_requests_parameters_with_query_param(grequests):
 
     grequests.get.assert_called_once_with('http://some.server.com:80//v1/some/path',
                                           data=None,
-                                          headers={},
+                                          headers={'Content-Type': 'application/json'},
                                           params={'arg1': 'this', 'arg2': 'that'},
                                           timeout=10)
 
@@ -212,8 +212,10 @@ def test_requests_parameters_with_body_param(grequests):
         pass
 
     grequests.post.assert_called_once_with('http://some.server.com:80//v1/some/path',
-                                           data={'arg1': 'a', 'arg2': 'b'}, headers={},
-                                           params=None, timeout=10)
+                                           data='{"arg1": "a", "arg2": "b"}',
+                                           headers={'Content-Type': 'application/json'},
+                                           params=None,
+                                           timeout=10)
 
 
 def test_client_with_auth_required():
@@ -322,6 +324,6 @@ def test_requests_parameters_with_path_params(grequests):
     grequests.get.assert_called_once_with(
         'http://some.server.com:80//v1/some/123/path/456',
         data=None,
-        headers={},
+        headers={'Content-Type': 'application/json'},
         params=None,
         timeout=10)
