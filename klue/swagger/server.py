@@ -56,7 +56,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         handler_func = endpoint_decorator(handler_func)
 
     def handler_wrapper(**path_params):
-        log.info("Calling %s" % handler_func.__name__)
+        log.info("=> INCOMING REQUEST %s %s -> %s" %
+                 (endpoint.method, endpoint.path, handler_func.__name__))
 
         # Get caller's klue-call-id or generate one
         call_id = request.headers.get('KlueCallID', None)
@@ -146,11 +147,10 @@ class FlaskRequestProxy(IncomingRequest):
 
     def __init__(self, request):
         self.request = request
-        print("request: " + pprint.pformat(request.args))
         self.query = request.args
 
     def json(self):
         # Convert a weltkreuz ImmutableDict to a simple python dict
-        j = self.request.form.copy().to_dict()
-        log.info("json is: " + pprint.pformat(j))
+        j = self.request.get_json(force=True)
+        log.info("request data is: " + pprint.pformat(j))
         return j
