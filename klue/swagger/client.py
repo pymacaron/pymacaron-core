@@ -1,6 +1,7 @@
 import grequests
 import pprint
 import jsonschema
+import json
 import logging
 import flask
 from klue.exceptions import KlueException, ValidationError
@@ -66,7 +67,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         body parameter.
         """
 
-        headers = {}
+        headers = {'Content-Type': 'application/json'}
         data = None
         params = None
 
@@ -85,7 +86,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             # The body parameter is the first elem in *args
             if len(args) != 1:
                 return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
-            data = spec.model_to_json(args[0])
+            data = json.dumps(spec.model_to_json(args[0]))
         elif endpoint.param_in_path:
             # Client expects arguments as a dict, not as a list
             assert len(args) == 0
