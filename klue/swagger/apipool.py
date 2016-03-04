@@ -124,7 +124,7 @@ class ApiPool():
         _cleanup(m1)
         _cleanup(m2)
 
-        log.debug("model1:\n" + pprint.pformat(m1))
-        log.debug("model2:\n" + pprint.pformat(m2))
+        # log.debug("model1:\n" + pprint.pformat(m1))
+        # log.debug("model2:\n" + pprint.pformat(m2))
 
         return cmp(m1, m2)
