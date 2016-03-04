@@ -151,6 +151,7 @@ class FlaskRequestProxy(IncomingRequest):
 
     def json(self):
         # Convert a weltkreuz ImmutableDict to a simple python dict
+        log.debug("request data is: " + pprint.pformat(self.request.data))
         j = self.request.get_json(force=True)
-        log.info("request data is: " + pprint.pformat(j))
+        log.debug("request json is: " + pprint.pformat(j))
         return j
