@@ -199,10 +199,10 @@ def test_swagger_server_param_in_body(func):
     func.return_value = SessionToken(token='456')
 
     with app.test_client() as c:
-        r = c.get('/v1/in/body', data={
+        r = c.get('/v1/in/body', data=json.dumps({
             'email': 'a@a.a',
             'int': '123123',
-        })
+        }))
         assert_ok_reply(r, '456')
         func.assert_called_once_with(Credentials(email='a@a.a', int='123123'))
 
@@ -278,7 +278,7 @@ def test_unmarshal_request_error__missing_required_argument(func):
     func.return_value = SessionToken(token='456')
 
     with app.test_client() as c:
-        r = c.get('/v1/in/body', data={'bazzoom': 'thiswontwork'})
+        r = c.get('/v1/in/body', data=json.dumps({'bazzoom': 'thiswontwork'}))
         assert_error(r, 400, 'BAD REQUEST')
         func.assert_not_called()
 
@@ -293,10 +293,10 @@ def test_unmarshal_request_error__wrong_argument_format(func):
     func.return_value = SessionToken(token='456')
 
     with app.test_client() as c:
-        data = {
+        data = json.dumps({
             'email': 'a@2a.a',
             'int': [1, 2, 3],
-        }
+        })
 
         r = c.get('/v1/in/body', data=data)
 
