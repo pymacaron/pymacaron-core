@@ -69,7 +69,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         """
 
         # Extract custom parameters from **kwargs
-        max_attempts = 1
+        max_attempts = 3
         read_timeout = timeout
         connect_timeout = timeout
 
@@ -133,7 +133,7 @@ def _format_flask_url(url, params):
 
 class ClientCaller():
 
-    def __init__(self, greq, operation, method, path, error_callback, max_attempts=1):
+    def __init__(self, greq, operation, method, path, error_callback, max_attempts):
         assert max_attempts >= 1
         self.operation = operation
         self.greq = greq
@@ -142,7 +142,7 @@ class ClientCaller():
         self.error_callback = error_callback
         self.max_attempts = max_attempts
 
-    def _call_retry(self):
+    def _call_retry(self, force_retry):
         """Call grequest and retry up to max_attempts times (or none if self.max_attempts=1)"""
         last_exception = None
         for i in range(self.max_attempts):
@@ -157,6 +157,8 @@ class ClientCaller():
 
                 last_exception = e
 
+                retry = force_retry
+
                 if isinstance(e, ReadTimeout):
                     # Log enough to help debugging...
                     log.warn("Got a ReadTimeout calling %s %s" % (method, url))
@@ -164,13 +166,21 @@ class ClientCaller():
                     resp = e.response
                     if not resp:
                         log.info("Requests error has no response.")
+                        # TODO: retry=True? Is it really safe?
                     else:
                         b = resp.content
                         log.info("Requests has a response with content: " + pprint.pformat(b))
-                    continue
+                    if method.lower() in ('get', 'patch'):
+                        # It is safe to retry
+                        retry = True
+
                 elif isinstance(e, ConnectTimeout):
                     log.warn("Got a ConnectTimeout calling %s %s" % (method, url))
                     log.warn("Exception was: %s" % str(e))
+                    # ConnectTimeouts are safe to retry whatever the call...
+                    retry = True
+
+                if retry:
                     continue
                 else:
                     raise e
@@ -178,8 +188,8 @@ class ClientCaller():
         # max_attempts has been reached: propagate the last received Exception
         raise last_exception
 
-    def call(self):
-        response = self._call_retry()
+    def call(self, force_retry=False):
+        response = self._call_retry(force_retry)
 
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
