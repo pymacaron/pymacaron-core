@@ -104,7 +104,7 @@ def test_requests_parameters_with_query_param(grequests):
                                           data=None,
                                           headers={'Content-Type': 'application/json'},
                                           params={'arg1': 'this', 'arg2': 'that'},
-                                          timeout=10)
+                                          timeout=(10, 10))
 
 
 yaml_body_param = """
@@ -215,7 +215,7 @@ def test_requests_parameters_with_body_param(grequests):
                                            data='{"arg1": "a", "arg2": "b"}',
                                            headers={'Content-Type': 'application/json'},
                                            params=None,
-                                           timeout=10)
+                                           timeout=(10, 10))
 
 
 def test_client_with_auth_required():
@@ -326,4 +326,29 @@ def test_requests_parameters_with_path_params(grequests):
         data=None,
         headers={'Content-Type': 'application/json'},
         params=None,
-        timeout=10)
+        timeout=(10, 10))
+
+
+@patch('klue.swagger.client.grequests')
+def test_handler_extra_parameters(grequests):
+    handler, spec = _slurp_yaml(yaml_path_param)
+
+    try:
+        handler(
+            foo=123,
+            bar=456,
+            max_attempts=2,
+            read_timeout=6,
+            connect_timeout=8
+        ).call()
+    except Exception as e:
+        pass
+
+    grequests.get.assert_called_once_with(
+        'http://some.server.com:80//v1/some/123/path/456',
+        data=None,
+        headers={'Content-Type': 'application/json'},
+        params=None,
+        timeout=(8, 6))
+
+# TODO: test max_attempts?

@@ -4,6 +4,7 @@ import jsonschema
 import json
 import logging
 import flask
+from requests.exceptions import ReadTimeout, ConnectTimeout
 from klue.exceptions import KlueException, ValidationError
 from klue.utils import get_function
 from bravado_core.response import unmarshal_response, OutgoingResponse
@@ -67,6 +68,22 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         body parameter.
         """
 
+        # Extract custom parameters from **kwargs
+        max_attempts = 1
+        read_timeout = timeout
+        connect_timeout = timeout
+
+        if 'max_attempts' in kwargs:
+            max_attempts = kwargs['max_attempts']
+            del kwargs['max_attempts']
+        if 'read_timeout' in kwargs:
+            read_timeout = kwargs['read_timeout']
+            del kwargs['read_timeout']
+        if 'connect_timeout' in kwargs:
+            connect_timeout = kwargs['connect_timeout']
+            del kwargs['connect_timeout']
+
+        # Prepare (g)requests arguments
         headers = {'Content-Type': 'application/json'}
         data = None
         params = None
@@ -99,9 +116,9 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
                                 data=data,
                                 params=params,
                                 headers=headers,
-                                timeout=timeout)
+                                timeout=(connect_timeout, read_timeout))
 
-        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path, error_callback)
+        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path, error_callback, max_attempts)
 
     return client
 
@@ -116,19 +133,53 @@ def _format_flask_url(url, params):
 
 class ClientCaller():
 
-    def __init__(self, greq, operation, method, path, error_callback):
+    def __init__(self, greq, operation, method, path, error_callback, max_attempts=1):
+        assert max_attempts >= 1
         self.operation = operation
         self.greq = greq
         self.method = method
         self.path = path
         self.error_callback = error_callback
+        self.max_attempts = max_attempts
+
+    def _call_retry(self):
+        """Call grequest and retry up to max_attempts times (or none if self.max_attempts=1)"""
+        last_exception = None
+        for i in range(self.max_attempts):
+            try:
+                log.info("Calling %s %s" % (self.method, self.path))
+                responses = grequests.map([self.greq])
+                assert len(responses) == 1
+                response = responses[0]
+                return response
+
+            except Exception as e:
+
+                last_exception = e
+
+                if isinstance(e, ReadTimeout):
+                    # Log enough to help debugging...
+                    log.warn("Got a ReadTimeout calling %s %s" % (method, url))
+                    log.warn("Exception was: %s" % str(e))
+                    resp = e.response
+                    if not resp:
+                        log.info("Requests error has no response.")
+                    else:
+                        b = resp.content
+                        log.info("Requests has a response with content: " + pprint.pformat(b))
+                    continue
+                elif isinstance(e, ConnectTimeout):
+                    log.warn("Got a ConnectTimeout calling %s %s" % (method, url))
+                    log.warn("Exception was: %s" % str(e))
+                    continue
+                else:
+                    raise e
+
+        # max_attempts has been reached: propagate the last received Exception
+        raise last_exception
 
     def call(self):
-        # TODO: add retry handler to map
-        log.info("Calling %s %s" % (self.method, self.path))
-        responses = grequests.map([self.greq])
-        assert len(responses) == 1
-        response = responses[0]
+        response = self._call_retry()
 
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
