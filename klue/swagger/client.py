@@ -137,10 +137,13 @@ class ClientCaller():
         assert max_attempts >= 1
         self.operation = operation
         self.greq = greq
-        self.method = method
+        self.method = method.upper()
         self.path = path
         self.error_callback = error_callback
         self.max_attempts = max_attempts
+
+    def _method_safe_to_retry(self):
+        return self.method in ('GET', 'PATCH')
 
     def _call_retry(self, force_retry):
         """Call grequest and retry up to max_attempts times (or none if self.max_attempts=1)"""
@@ -151,6 +154,15 @@ class ClientCaller():
                 responses = grequests.map([self.greq])
                 assert len(responses) == 1
                 response = responses[0]
+
+                if response is None:
+                    log.warn("Got response None")
+                    if self._method_safe_to_retry():
+                        log.info("Retrying since call is a %s" % self.method)
+                        continue
+                    else:
+                        raise KlueException("Call %s %s returned empty response" % (self.method, self.path))
+
                 return response
 
             except Exception as e:
@@ -161,7 +173,7 @@ class ClientCaller():
 
                 if isinstance(e, ReadTimeout):
                     # Log enough to help debugging...
-                    log.warn("Got a ReadTimeout calling %s %s" % (method, url))
+                    log.warn("Got a ReadTimeout calling %s %s" % (self.method, self.path))
                     log.warn("Exception was: %s" % str(e))
                     resp = e.response
                     if not resp:
@@ -170,12 +182,13 @@ class ClientCaller():
                     else:
                         b = resp.content
                         log.info("Requests has a response with content: " + pprint.pformat(b))
-                    if method.lower() in ('get', 'patch'):
+                    if self._method_safe_to_retry():
                         # It is safe to retry
+                        log.info("Retrying since call is a %s" % self.method)
                         retry = True
 
                 elif isinstance(e, ConnectTimeout):
-                    log.warn("Got a ConnectTimeout calling %s %s" % (method, url))
+                    log.warn("Got a ConnectTimeout calling %s %s" % (self.method, self.path))
                     log.warn("Exception was: %s" % str(e))
                     # ConnectTimeouts are safe to retry whatever the call...
                     retry = True
@@ -186,6 +199,7 @@ class ClientCaller():
                     raise e
 
         # max_attempts has been reached: propagate the last received Exception
+        log.info("Reached max-attempts. Giving up calling %s %s" % (self.method, self.path))
         raise last_exception
 
     def call(self, force_retry=False):
