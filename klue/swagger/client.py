@@ -52,9 +52,9 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         decorator = get_function(endpoint.decorate_request)
 
     method = endpoint.method.lower()
-    if method not in ('get', 'post'):
-        return error_callback(KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                                            (endpoint.method, endpoint.path)))
+    if method not in ('get', 'post', 'patch', 'put', 'delete'):
+        raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
+                            (endpoint.method, endpoint.path))
 
     grequests_method = getattr(grequests, method)
     if decorator:
