@@ -107,7 +107,6 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         elif endpoint.param_in_path:
             # Client expects arguments as a dict, not as a list
             assert len(args) == 0
-            print("got url and params: " + pprint.pformat([url, kwargs]))
             custom_url = _format_flask_url(url, kwargs)
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
@@ -118,7 +117,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
                                 headers=headers,
                                 timeout=(connect_timeout, read_timeout))
 
-        return ClientCaller(greq, endpoint.operation, endpoint.method, endpoint.path, error_callback, max_attempts)
+        return ClientCaller(greq, custom_url, endpoint.operation, endpoint.method, error_callback, max_attempts)
 
     return client
 
@@ -133,12 +132,12 @@ def _format_flask_url(url, params):
 
 class ClientCaller():
 
-    def __init__(self, greq, operation, method, path, error_callback, max_attempts):
+    def __init__(self, greq, url, operation, method, error_callback, max_attempts):
         assert max_attempts >= 1
+        self.url = url
         self.operation = operation
         self.greq = greq
         self.method = method.upper()
-        self.path = path
         self.error_callback = error_callback
         self.max_attempts = max_attempts
 
@@ -150,7 +149,7 @@ class ClientCaller():
         last_exception = None
         for i in range(self.max_attempts):
             try:
-                log.info("Calling %s %s" % (self.method, self.path))
+                log.info("Calling %s %s" % (self.method, self.url))
                 responses = grequests.map([self.greq])
                 assert len(responses) == 1
                 response = responses[0]
@@ -161,7 +160,7 @@ class ClientCaller():
                         log.info("Retrying since call is a %s" % self.method)
                         continue
                     else:
-                        raise KlueException("Call %s %s returned empty response" % (self.method, self.path))
+                        raise KlueException("Call %s %s returned empty response" % (self.method, self.url))
 
                 return response
 
@@ -173,7 +172,7 @@ class ClientCaller():
 
                 if isinstance(e, ReadTimeout):
                     # Log enough to help debugging...
-                    log.warn("Got a ReadTimeout calling %s %s" % (self.method, self.path))
+                    log.warn("Got a ReadTimeout calling %s %s" % (self.method, self.url))
                     log.warn("Exception was: %s" % str(e))
                     resp = e.response
                     if not resp:
@@ -188,7 +187,7 @@ class ClientCaller():
                         retry = True
 
                 elif isinstance(e, ConnectTimeout):
-                    log.warn("Got a ConnectTimeout calling %s %s" % (self.method, self.path))
+                    log.warn("Got a ConnectTimeout calling %s %s" % (self.method, self.url))
                     log.warn("Exception was: %s" % str(e))
                     # ConnectTimeouts are safe to retry whatever the call...
                     retry = True
@@ -199,7 +198,7 @@ class ClientCaller():
                     raise e
 
         # max_attempts has been reached: propagate the last received Exception
-        log.info("Reached max-attempts. Giving up calling %s %s" % (self.method, self.path))
+        log.info("Reached max-attempts. Giving up calling %s %s" % (self.method, self.url))
         raise last_exception
 
     def call(self, force_retry=False):
@@ -207,7 +206,7 @@ class ClientCaller():
 
         # If the remote-server returned an error, raise it as a local KlueException
         if str(response.status_code) != '200':
-            log.warn("Call to %s %s returns error: %s" % (self.method, self.path, response.text))
+            log.warn("Call to %s %s returns error: %s" % (self.method, self.url, response.text))
             if 'error_description' in response.text:
                 # We got a KlueException: unmarshal it and return as valid return value
                 # UGLY FRAGILE CODE. To be replaced by proper exception scheme
@@ -219,7 +218,7 @@ class ClientCaller():
                 return self.error_callback(k)
 
         result = self._unmarshal(response)
-        log.info("Call to %s %s returned an instance of %s" % (self.method, self.path, type(result)))
+        log.info("Call to %s %s returned an instance of %s" % (self.method, self.url, type(result)))
         return result
 
     def _unmarshal(self, response):
