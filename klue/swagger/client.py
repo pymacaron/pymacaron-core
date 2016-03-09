@@ -95,9 +95,6 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         if hasattr(stack.top, 'call_path'):
             headers['KlueCallPath'] = stack.top.call_path
 
-        log.debug("got args (%s) and kwargs (%s)" % (args, kwargs))
-        log.debug("endpoints: " + pprint.pformat([endpoint.param_in_query, endpoint.param_in_body, endpoint.param_in_path]))
-
         if endpoint.param_in_path:
             # Fill url with values from kwargs, and remove those params from kwargs
             custom_url = _format_flask_url(url, kwargs)
@@ -114,8 +111,6 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             if len(args) != 1:
                 return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = json.dumps(spec.model_to_json(args[0]))
-
-        log.debug("url: (%s) query args: (%s)" % (custom_url, params))
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)

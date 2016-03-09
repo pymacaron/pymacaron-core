@@ -2,6 +2,7 @@ import pprint
 import jsonschema
 import logging
 import uuid
+from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
 from flask.ext.cors import cross_origin
 from klue.exceptions import KlueException, ValidationError, add_error_handlers
@@ -73,10 +74,13 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             call_path = api_name
         stack.top.call_path = call_path
 
-        # Turn the flask request into something bravado-core can process...
-        req = FlaskRequestProxy(request)
-
         if endpoint.param_in_body or endpoint.param_in_query:
+            # Turn the flask request into something bravado-core can process...
+            try:
+                req = FlaskRequestProxy(request, endpoint.param_in_body)
+            except BadRequest:
+                return error_callback(ValidationError("Cannot parse json data: have you set 'Content-Type' to 'application/json'?"))
+
             try:
                 # Note: unmarshall validates parameters but does not fail
                 # if extra unknown parameters are submitted
@@ -94,6 +98,9 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             kwargs = path_params
 
         if endpoint.param_in_body:
+            # Remove the parameters already defined in path_params
+            for k in path_params.keys():
+                del parameters[k]
             l = list(parameters.values())
             assert len(l) == 1
             args.append(l[0])
@@ -147,18 +154,16 @@ class FlaskRequestProxy(IncomingRequest):
     form = None
     headers = None
     files = None
+    _json = None
 
-    def __init__(self, request):
+    def __init__(self, request, has_json):
         self.request = request
         self.query = request.args
+        self.path = request.view_args
+        self.headers = request.headers
+        if has_json:
+            self._json = self.request.get_json(force=True)
 
     def json(self):
         # Convert a weltkreuz ImmutableDict to a simple python dict
-        data_str = pprint.pformat(self.request.data)
-        if data_str == '':
-            raise KlueException('Empty or Invalid JSON request. Is Content-Type set to application/json?')
-        else:
-            log.debug("Request data is: %s" % data_str)
-        j = self.request.get_json(force=True)
-        log.debug("request json is: " + pprint.pformat(j))
-        return j
+        return self._json
