@@ -144,16 +144,21 @@ class ApiSpec():
                 # more values in query?
                 if 'parameters' in op_spec:
                     params = op_spec['parameters']
-                    if len(params) == 1 and params[0]['in'] == 'body':
-                        data.param_in_body = True
-                    elif params[0]['in'] == 'query':
-                        data.param_in_query = True
-                    elif params[0]['in'] == 'path':
-                        data.param_in_path = True
+                    for p in params:
+                        if p['in'] == 'body':
+                            data.param_in_body = True
+                        if p['in'] == 'query':
+                            data.param_in_query = True
+                        if p['in'] == 'path':
+                            data.param_in_path = True
+
+                    if data.param_in_path:
                         # Substitute {...} with <...> in path, to make a Flask friendly path
                         data.path = data.path.replace('{', '<').replace('}', '>')
-                    else:
-                        raise Exception("%s %s uses an unsupported parameter model" % (method, path))
+
+                    if data.param_in_body and data.param_in_query:
+                        raise Exception("Cannot support params in both body and param (%s %s)" % (method, path))
+
                 else:
                     data.no_params = True
 

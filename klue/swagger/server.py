@@ -76,7 +76,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         # Turn the flask request into something bravado-core can process...
         req = FlaskRequestProxy(request)
 
-        if not endpoint.param_in_path:
+        if endpoint.param_in_body or endpoint.param_in_query:
             try:
                 # Note: unmarshall validates parameters but does not fail
                 # if extra unknown parameters are submitted
@@ -87,18 +87,21 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         # Call the endpoint, with proper parameters depending on whether
         # parameters are in body, query or url
+        args = []
+        kwargs = {}
+
+        if endpoint.param_in_path:
+            kwargs = path_params
+
         if endpoint.param_in_body:
-            assert len(parameters) == 1
-            values = list(parameters.values())
-            result = handler_func(values[0])
-        elif endpoint.param_in_query:
-            result = handler_func(**parameters)
-        elif endpoint.param_in_path:
-            result = handler_func(**path_params)
-        elif endpoint.no_params:
-            result = handler_func()
-        else:
-            return error_callback(KlueException("WTF? expected parameters are neither in query nor in body."))
+            l = list(parameters.values())
+            assert len(l) == 1
+            args.append(l[0])
+
+        if endpoint.param_in_query:
+            kwargs.update(parameters)
+
+        result = handler_func(*args, **kwargs)
 
         # Did we get the expected response?
         if not result:

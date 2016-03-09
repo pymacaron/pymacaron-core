@@ -230,6 +230,32 @@ paths:
           schema:
             $ref: '#/definitions/SessionToken'
 
+  /v1/hybrid/{foo}:
+    get:
+      summary: blabla
+      description: blabla
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: whatever
+          description: User login credentials.
+          required: true
+          schema:
+            $ref: '#/definitions/Credentials'
+        - in: path
+          name: foo
+          description: foooo
+          required: true
+          type: string
+      x-bind-server: do_version
+      x-decorate-server: foo.bar.baz
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+
   /v1/ignoreme/:
     get:
       summary: blabla
@@ -295,6 +321,7 @@ definitions:
                 self.assertIsNone(data.decorate_request)
                 self.assertTrue(data.param_in_body)
                 self.assertFalse(data.param_in_query)
+                self.assertFalse(data.param_in_path)
                 self.assertFalse(data.no_params)
 
             elif data.path == '/v1/version':
@@ -305,11 +332,23 @@ definitions:
                 self.assertEqual(data.decorate_server, 'foo.bar.baz')
                 self.assertFalse(data.param_in_body)
                 self.assertFalse(data.param_in_query)
+                self.assertFalse(data.param_in_path)
+                self.assertTrue(data.no_params)
+
+            elif data.path == '/v1/hybrib':
+                self.assertEqual(data.method, 'GET')
+                self.assertEqual(data.handler_server, 'do_version')
+                self.assertIsNone(data.handler_client)
+                self.assertIsNone(data.decorate_request)
+                self.assertEqual(data.decorate_server, 'foo.bar.baz')
+                self.assertTrue(data.param_in_body)
+                self.assertFalse(data.param_in_query)
+                self.assertTrue(data.param_in_path)
                 self.assertTrue(data.no_params)
 
         spec.call_on_each_endpoint(test_callback)
 
-        self.assertEqual(Tests.call_count, 3)
+        self.assertEqual(Tests.call_count, 4)
 
 
     yaml_complex_model = """

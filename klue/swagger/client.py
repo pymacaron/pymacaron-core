@@ -45,7 +45,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
     url = "%s://%s:%s/%s" % (spec.protocol,
                              spec.host,
                              spec.port,
-                             endpoint.path)
+                             endpoint.path.lstrip('/'))
 
     decorator = None
     if endpoint.decorate_request:
@@ -95,6 +95,16 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         if hasattr(stack.top, 'call_path'):
             headers['KlueCallPath'] = stack.top.call_path
 
+        log.debug("got args (%s) and kwargs (%s)" % (args, kwargs))
+        log.debug("endpoints: " + pprint.pformat([endpoint.param_in_query, endpoint.param_in_body, endpoint.param_in_path]))
+
+        if endpoint.param_in_path:
+            # Fill url with values from kwargs, and remove those params from kwargs
+            custom_url = _format_flask_url(url, kwargs)
+            if '<' in custom_url:
+                # Some arguments were missing
+                return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
+
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs
             params = kwargs
@@ -104,10 +114,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             if len(args) != 1:
                 return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = json.dumps(spec.model_to_json(args[0]))
-        elif endpoint.param_in_path:
-            # Client expects arguments as a dict, not as a list
-            assert len(args) == 0
-            custom_url = _format_flask_url(url, kwargs)
+
+        log.debug("url: (%s) query args: (%s)" % (custom_url, params))
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
         # Call the right grequests method (get, post...)
@@ -125,8 +133,15 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
 def _format_flask_url(url, params):
     # TODO: make this code more robust: error if some params are left unmatched
     # or if url still contains placeholders after replacing
+    remove = []
     for name, value in params.iteritems():
-        url = url.replace("<%s>" % name, str(value))
+        if "<%s>" % name in url:
+            url = url.replace("<%s>" % name, str(value))
+            remove.append(name)
+
+    for name in remove:
+        del params[name]
+
     return url
 
 
@@ -141,7 +156,7 @@ class ClientCaller():
         self.error_callback = error_callback
         self.max_attempts = max_attempts
 
-    def _method_safe_to_retry(self):
+    def _method_is_safe_to_retry(self):
         return self.method in ('GET', 'PATCH')
 
     def _call_retry(self, force_retry):
@@ -156,7 +171,7 @@ class ClientCaller():
 
                 if response is None:
                     log.warn("Got response None")
-                    if self._method_safe_to_retry():
+                    if self._method_is_safe_to_retry():
                         log.info("Retrying since call is a %s" % self.method)
                         continue
                     else:
@@ -181,7 +196,7 @@ class ClientCaller():
                     else:
                         b = resp.content
                         log.info("Requests has a response with content: " + pprint.pformat(b))
-                    if self._method_safe_to_retry():
+                    if self._method_is_safe_to_retry():
                         # It is safe to retry
                         log.info("Retrying since call is a %s" % self.method)
                         retry = True

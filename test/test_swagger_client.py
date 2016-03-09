@@ -79,7 +79,7 @@ definitions:
 def test_client_with_query_param():
     handler, _ = _slurp_yaml(yaml_query_param)
 
-    responses.add(responses.GET, "http://some.server.com:80//v1/some/path",
+    responses.add(responses.GET, "http://some.server.com:80/v1/some/path",
                   body='{"foo": "a", "bar": "b"}', status=200,
                   content_type="application/json")
 
@@ -100,7 +100,7 @@ def test_requests_parameters_with_query_param(grequests):
     except Exception as e:
         pass
 
-    grequests.get.assert_called_once_with('http://some.server.com:80//v1/some/path',
+    grequests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
                                           data=None,
                                           headers={'Content-Type': 'application/json'},
                                           params={'arg1': 'this', 'arg2': 'that'},
@@ -172,7 +172,7 @@ definitions:
 def test_client_with_body_param():
     handler, spec = _slurp_yaml(yaml_body_param)
 
-    responses.add(responses.POST, "http://some.server.com:80//v1/some/path",
+    responses.add(responses.POST, "http://some.server.com:80/v1/some/path",
                   body='{"foo": "a", "bar": "b"}', status=200,
                   content_type="application/json")
 
@@ -211,7 +211,7 @@ def test_requests_parameters_with_body_param(grequests):
     except Exception as e:
         pass
 
-    grequests.post.assert_called_once_with('http://some.server.com:80//v1/some/path',
+    grequests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
                                            data='{"arg1": "a", "arg2": "b"}',
                                            headers={'Content-Type': 'application/json'},
                                            params=None,
@@ -223,23 +223,35 @@ def test_client_with_auth_required():
 
 
 def test__format_flask_url():
+    ref = {
+        'item_id': '1234',
+        'path': 'abcd',
+    }
+
+    data = ref.copy()
     u = _format_flask_url(
         "/v1/seller/<item_id>/<path>/foo",
-        {
-            'item_id': '1234',
-            'path': 'abcd',
-        }
+        data
     )
-    assert u == "/v1/seller/1234/abcd/foo"
+    assert u == "/v1/seller/1234/abcd/foo", u
+    assert len(data.keys()) == 0
 
+    data = ref.copy()
     u = _format_flask_url(
         "/v1/seller/<item_id>/<path>/foo/<item_id>",
-        {
-            'item_id': 1234,
-            'path': 'abcd',
-        }
+        data,
     )
-    assert u == "/v1/seller/1234/abcd/foo/1234"
+    assert u == "/v1/seller/1234/abcd/foo/1234", u
+    assert len(data.keys()) == 0
+
+    data = ref.copy()
+    u = _format_flask_url(
+        "/v1/seller/<item_id>/foo",
+        data,
+    )
+    assert u == "/v1/seller/1234/foo", u
+    assert len(data.keys()) == 1
+    assert data['path'] == 'abcd'
 
 
 yaml_path_param = """
@@ -256,6 +268,115 @@ produces:
   - application/json
 paths:
   /v1/some/{foo}/path/{bar}:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: path
+          name: foo
+          description: foooo
+          required: true
+          type: string
+        - in: path
+          name: bar
+          description: baaar
+          required: true
+          type: string
+      produces:
+        - application/json
+      x-bind-server: whatever
+      x-bind-client: do_test
+      x-auth-required: false
+      responses:
+        '200':
+          description: result
+          schema:
+            $ref: '#/definitions/Result'
+
+definitions:
+
+  Result:
+    type: object
+    description: result
+    properties:
+      foo:
+        type: string
+        description: blabla
+      bar:
+        type: string
+        description: bloblo
+"""
+
+@responses.activate
+def test_client_with_path_param():
+    handler, spec = _slurp_yaml(yaml_path_param)
+
+    responses.add(responses.GET,
+                  "http://some.server.com:80/v1/some/123/path/456",
+                  body='{"foo": "a", "bar": "b"}',
+                  status=200,
+                  content_type="application/json")
+
+    # Make a valid call
+    res = handler(foo=123, bar=456).call()
+    assert type(res).__name__ == 'Result'
+    assert res.foo == 'a'
+    assert res.bar == 'b'
+
+
+@patch('klue.swagger.client.grequests')
+def test_requests_parameters_with_path_params(grequests):
+    handler, spec = _slurp_yaml(yaml_path_param)
+
+    try:
+        handler(foo=123, bar=456).call()
+    except Exception as e:
+        pass
+
+    grequests.get.assert_called_once_with(
+        'http://some.server.com:80/v1/some/123/path/456',
+        data=None,
+        headers={'Content-Type': 'application/json'},
+        params=None,
+        timeout=(10, 10))
+
+
+@patch('klue.swagger.client.grequests')
+def test_handler_extra_parameters(grequests):
+    handler, spec = _slurp_yaml(yaml_path_param)
+
+    try:
+        handler(
+            foo=123,
+            bar=456,
+            max_attempts=2,
+            read_timeout=6,
+            connect_timeout=8
+        ).call()
+    except Exception as e:
+        pass
+
+    grequests.get.assert_called_once_with(
+        'http://some.server.com:80/v1/some/123/path/456',
+        data=None,
+        headers={'Content-Type': 'application/json'},
+        params=None,
+        timeout=(8, 6))
+
+yaml_path_query_param = """
+swagger: '2.0'
+info:
+  title: test
+  version: '0.0.1'
+  description: Just a test
+host: some.server.com
+schemes:
+  - http
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /v1/some/{foo}/path:
     get:
       summary: blabla
       description: blabla
@@ -296,11 +417,11 @@ definitions:
 """
 
 @responses.activate
-def test_client_with_path_param():
-    handler, spec = _slurp_yaml(yaml_path_param)
+def test_client_with_path_query_param():
+    handler, spec = _slurp_yaml(yaml_path_query_param)
 
     responses.add(responses.GET,
-                  "http://some.server.com:80//v1/some/123/path/456",
+                  "http://some.server.com:80/v1/some/123/path",
                   body='{"foo": "a", "bar": "b"}',
                   status=200,
                   content_type="application/json")
@@ -311,10 +432,9 @@ def test_client_with_path_param():
     assert res.foo == 'a'
     assert res.bar == 'b'
 
-
 @patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_path_params(grequests):
-    handler, spec = _slurp_yaml(yaml_path_param)
+def test_requests_parameters_with_path_query_params(grequests):
+    handler, spec = _slurp_yaml(yaml_path_query_param)
 
     try:
         handler(foo=123, bar=456).call()
@@ -322,33 +442,135 @@ def test_requests_parameters_with_path_params(grequests):
         pass
 
     grequests.get.assert_called_once_with(
-        'http://some.server.com:80//v1/some/123/path/456',
+        'http://some.server.com:80/v1/some/123/path',
         data=None,
         headers={'Content-Type': 'application/json'},
-        params=None,
+        params={'bar': 456},
         timeout=(10, 10))
 
 
+yaml_path_body_param = """
+swagger: '2.0'
+info:
+  title: test
+  version: '0.0.1'
+  description: Just a test
+host: some.server.com
+schemes:
+  - http
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /v1/some/{foo}/path:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: path
+          name: foo
+          description: foooo
+          required: true
+          type: string
+        - in: body
+          name: arg1
+          description: foooo
+          required: true
+          schema:
+            $ref: '#/definitions/Param'
+      produces:
+        - application/json
+      x-bind-server: whatever
+      x-bind-client: do_test
+      x-auth-required: false
+      responses:
+        '200':
+          description: result
+          schema:
+            $ref: '#/definitions/Result'
+
+definitions:
+
+  Result:
+    type: object
+    description: result
+    properties:
+      foo:
+        type: string
+        description: blabla
+      bar:
+        type: string
+        description: bloblo
+
+  Param:
+    type: object
+    description: param
+    properties:
+      arg1:
+        type: string
+        description: blabla
+      arg2:
+        type: string
+        description: bloblo
+"""
+
+@responses.activate
+def test_client_with_path_body_param():
+    handler, spec = _slurp_yaml(yaml_path_body_param)
+
+    responses.add(responses.GET,
+                  "http://some.server.com:80/v1/some/123/path",
+                  body='{"foo": "a", "bar": "b"}',
+                  status=200,
+                  content_type="application/json")
+
+    # Send a valid parameter object
+    model_class = spec.definitions['Param']
+    param = model_class(arg1='a', arg2='b')
+
+    res = handler(param, foo=123).call()
+    assert type(res).__name__ == 'Result'
+    assert res.foo == 'a'
+    assert res.bar == 'b'
+
+    # Only 1 parameter expected
+    try:
+        res = handler(foo=123)
+    except ValidationError as e:
+        assert 'expects exactly' in str(e), str(e)
+    else:
+        assert 0
+    try:
+        res = handler(1, 2, foo=123)
+    except ValidationError as e:
+        assert 'expects exactly' in str(e), str(e)
+    else:
+        assert 0
+    try:
+        res = handler(param)
+    except ValidationError as e:
+        assert 'Missing some arguments' in str(e), str(e)
+    else:
+        assert 0
+
 @patch('klue.swagger.client.grequests')
-def test_handler_extra_parameters(grequests):
-    handler, spec = _slurp_yaml(yaml_path_param)
+def test_requests_parameters_with_path_body_params(grequests):
+    handler, spec = _slurp_yaml(yaml_path_body_param)
+
+    model_class = spec.definitions['Param']
+    param = model_class(arg1='a', arg2='b')
 
     try:
-        handler(
-            foo=123,
-            bar=456,
-            max_attempts=2,
-            read_timeout=6,
-            connect_timeout=8
-        ).call()
+        handler(param, foo=123).call()
     except Exception as e:
         pass
 
     grequests.get.assert_called_once_with(
-        'http://some.server.com:80//v1/some/123/path/456',
-        data=None,
+        'http://some.server.com:80/v1/some/123/path',
+        data='{"arg1": "a", "arg2": "b"}',
         headers={'Content-Type': 'application/json'},
         params=None,
-        timeout=(8, 6))
+        timeout=(10, 10))
+
 
 # TODO: test max_attempts?
