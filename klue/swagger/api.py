@@ -66,7 +66,7 @@ class API():
     # The api's name
     name = None
 
-    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True):
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None):
         """An API Specification"""
 
         self.name = name
@@ -79,7 +79,7 @@ class API():
         else:
             raise Exception("No swagger file specified")
 
-        self.api_spec = ApiSpec(swagger_dict, formats)
+        self.api_spec = ApiSpec(swagger_dict, formats, host, port)
 
         if timeout:
             self.client_timeout = timeout
