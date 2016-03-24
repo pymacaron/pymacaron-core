@@ -100,7 +100,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             custom_url = _format_flask_url(url, kwargs)
             if '<' in custom_url:
                 # Some arguments were missing
-                return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
+                return ErrorWrapper(error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url)))
 
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs
@@ -109,7 +109,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         elif endpoint.param_in_body:
             # The body parameter is the first elem in *args
             if len(args) != 1:
-                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
+                return ErrorWrapper(error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)))
             data = json.dumps(spec.model_to_json(args[0]))
 
         # TODO: if request times-out, retry a few times, else return KlueTimeOutError
@@ -138,6 +138,16 @@ def _format_flask_url(url, params):
         del params[name]
 
     return url
+
+
+class ErrorWrapper():
+    """A fake ClientCaller that carries an error occured during preparing the call"""
+
+    def __init__(self, result):
+        self.result = result
+
+    def call(self, **kwargs):
+        return self.result
 
 
 class ClientCaller():
@@ -245,6 +255,7 @@ class ClientCaller():
 def async_call(*client_callers):
     """Call these server endpoints asynchronously and return Model or Error objects"""
     # TODO: add retry handler to map
+    # TODO: call callers.greq
     responses = grequests.map(client_callers)
     results = []
     for i in xrange(1, len(responses)):

@@ -48,6 +48,15 @@ def spawn_server_api(api_name, app, api_spec, error_callback, decorator):
     add_error_handlers(app)
 
 
+def _responsify(api_spec, error, status):
+    """Take a bravado-core model representing an error, and return a Flask Response
+    with the given error code and error instance as body"""
+    result_json = api_spec.model_to_json(error)
+    r = jsonify(result_json)
+    r.status_code = status
+    return r
+
+
 def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_callback, global_decorator):
     """Generate a handler method for the given url method+path and operation"""
 
@@ -79,7 +88,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             try:
                 req = FlaskRequestProxy(request, endpoint.param_in_body)
             except BadRequest:
-                return error_callback(ValidationError("Cannot parse json data: have you set 'Content-Type' to 'application/json'?"))
+                ee = error_callback(ValidationError("Cannot parse json data: have you set 'Content-Type' to 'application/json'?"))
+                return _responsify(api_spec, ee, 400)
 
             try:
                 # Note: unmarshall validates parameters but does not fail
@@ -87,7 +97,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
                 parameters = unmarshal_request(req, endpoint.operation)
                 # Example of parameters: {'body': RegisterCredentials()}
             except jsonschema.exceptions.ValidationError as e:
-                return error_callback(ValidationError(str(e)))
+                ee = error_callback(ValidationError(str(e)))
+                return _responsify(api_spec, ee, 400)
 
         # Call the endpoint, with proper parameters depending on whether
         # parameters are in body, query or url
@@ -112,11 +123,13 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         # Did we get the expected response?
         if not result:
-            return error_callback(KlueException("Have nothing to send in response"))
+            e = error_callback(KlueException("Have nothing to send in response"))
+            return _responsify(api_spec, e, 500)
 
         if not hasattr(result, '__module__') or not hasattr(result, '__class__'):
-            return error_callback(KlueException("Method %s did not return a class instance but a %s" %
-                                                (endpoint.handler_server, type(result))))
+            e = error_callback(KlueException("Method %s did not return a class instance but a %s" %
+                                             (endpoint.handler_server, type(result))))
+            return _responsify(api_spec, e, 500)
 
         # If it's already a flask Response, just pass it through.
         # Errors in particular may be either passed back as flask Responses, or
