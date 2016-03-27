@@ -1,576 +1,341 @@
+import imp
+import os
+
 import pprint
-import yaml
+
 import responses
 from httplib import HTTPResponse
 from mock import patch, MagicMock
-from klue.swagger.api import default_error_callback
-from klue.swagger.spec import ApiSpec
-from klue.swagger.client import generate_client_callers, _format_flask_url
+from klue.swagger.client import _format_flask_url
 from klue.exceptions import KlueException, ValidationError
 
-def _slurp_yaml(yaml_str):
-    swagger_dict = yaml.load(yaml_str)
-    spec = ApiSpec(swagger_dict)
-    callers_dict = generate_client_callers(spec, 10, default_error_callback)
-
-    assert len(callers_dict.keys()) == 1
-    assert 'do_test' in callers_dict
-
-    handler = callers_dict['do_test']
-    assert type(handler).__name__ == 'function'
-
-    return handler, spec
-
-
-yaml_query_param = """
-swagger: '2.0'
-info:
-  title: test
-  version: '0.0.1'
-  description: Just a test
-host: some.server.com
-schemes:
-  - http
-basePath: /v1
-produces:
-  - application/json
-paths:
-  /v1/some/path:
-    get:
-      summary: blabla
-      description: blabla
-      parameters:
-        - in: query
-          name: arg1
-          description: foooo
-          required: true
-          type: string
-        - in: query
-          name: arg2
-          description: foooo
-          required: true
-          type: string
-      produces:
-        - application/json
-      x-bind-server: whatever
-      x-bind-client: do_test
-      x-auth-required: false
-      responses:
-        '200':
-          description: result
-          schema:
-            $ref: '#/definitions/Result'
-
-definitions:
-
-  Result:
-    type: object
-    description: result
-    properties:
-      foo:
-        type: string
-        description: blabla
-      bar:
-        type: string
-        description: bloblo
-"""
-
-@responses.activate
-def test_client_with_query_param():
-    handler, _ = _slurp_yaml(yaml_query_param)
-
-    responses.add(responses.GET, "http://some.server.com:80/v1/some/path",
-                  body='{"foo": "a", "bar": "b"}', status=200,
-                  content_type="application/json")
-
-    res = handler(arg1='this', arg2='that').call()
-
-    print("response: " + pprint.pformat(res))
-    assert type(res).__name__ == 'Result'
-    assert res.foo == 'a'
-    assert res.bar == 'b'
-
-
-@patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_query_param(grequests):
-    grequests.get = MagicMock()
-    handler, _ = _slurp_yaml(yaml_query_param)
-    try:
-        handler(arg1='this', arg2='that').call()
-    except Exception as e:
-        pass
-
-    grequests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                          data=None,
-                                          headers={'Content-Type': 'application/json'},
-                                          params={'arg1': 'this', 'arg2': 'that'},
-                                          timeout=(10, 10))
-
-
-yaml_body_param = """
-swagger: '2.0'
-info:
-  title: test
-  version: '0.0.1'
-  description: Just a test
-host: some.server.com
-schemes:
-  - http
-basePath: /v1
-produces:
-  - application/json
-paths:
-  /v1/some/path:
-    post:
-      summary: blabla
-      description: blabla
-      parameters:
-        - in: body
-          name: arg1
-          description: foooo
-          required: true
-          schema:
-            $ref: '#/definitions/Param'
-      produces:
-        - application/json
-      x-bind-server: whatever
-      x-bind-client: do_test
-      x-auth-required: false
-      responses:
-        '200':
-          description: result
-          schema:
-            $ref: '#/definitions/Result'
-
-definitions:
-
-  Result:
-    type: object
-    description: result
-    properties:
-      foo:
-        type: string
-        description: blabla
-      bar:
-        type: string
-        description: bloblo
-
-  Param:
-    type: object
-    description: param
-    properties:
-      arg1:
-        type: string
-        description: blabla
-      arg2:
-        type: string
-        description: bloblo
-
-"""
-
-@responses.activate
-def test_client_with_body_param():
-    handler, spec = _slurp_yaml(yaml_body_param)
-
-    responses.add(responses.POST, "http://some.server.com:80/v1/some/path",
-                  body='{"foo": "a", "bar": "b"}', status=200,
-                  content_type="application/json")
-
-    # Only 1 parameter expected
-    try:
-        res = handler()
-    except ValidationError as e:
-        assert 1
-    else:
-        assert 0
-    try:
-        res = handler(1, 2)
-    except ValidationError as e:
-        assert 1
-    else:
-        assert 0
-
-    # Send a valid parameter object
-    model_class = spec.definitions['Param']
-    param = model_class(arg1='a', arg2='b')
-
-    res = handler(param).call()
-    assert type(res).__name__ == 'Result'
-    assert res.foo == 'a'
-    assert res.bar == 'b'
-
-
-@patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_body_param(grequests):
-    handler, spec = _slurp_yaml(yaml_body_param)
-    model_class = spec.definitions['Param']
-    param = model_class(arg1='a', arg2='b')
-
-    try:
-        handler(param).call()
-    except Exception as e:
-        pass
-
-    grequests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                           data='{"arg1": "a", "arg2": "b"}',
-                                           headers={'Content-Type': 'application/json'},
-                                           params=None,
-                                           timeout=(10, 10))
-
-
-def test_client_with_auth_required():
-    pass
-
-
-def test__format_flask_url():
-    ref = {
-        'item_id': '1234',
-        'path': 'abcd',
-    }
-
-    data = ref.copy()
-    u = _format_flask_url(
-        "/v1/seller/<item_id>/<path>/foo",
-        data
-    )
-    assert u == "/v1/seller/1234/abcd/foo", u
-    assert len(data.keys()) == 0
-
-    data = ref.copy()
-    u = _format_flask_url(
-        "/v1/seller/<item_id>/<path>/foo/<item_id>",
-        data,
-    )
-    assert u == "/v1/seller/1234/abcd/foo/1234", u
-    assert len(data.keys()) == 0
-
-    data = ref.copy()
-    u = _format_flask_url(
-        "/v1/seller/<item_id>/foo",
-        data,
-    )
-    assert u == "/v1/seller/1234/foo", u
-    assert len(data.keys()) == 1
-    assert data['path'] == 'abcd'
-
-
-yaml_path_param = """
-swagger: '2.0'
-info:
-  title: test
-  version: '0.0.1'
-  description: Just a test
-host: some.server.com
-schemes:
-  - http
-basePath: /v1
-produces:
-  - application/json
-paths:
-  /v1/some/{foo}/path/{bar}:
-    get:
-      summary: blabla
-      description: blabla
-      parameters:
-        - in: path
-          name: foo
-          description: foooo
-          required: true
-          type: string
-        - in: path
-          name: bar
-          description: baaar
-          required: true
-          type: string
-      produces:
-        - application/json
-      x-bind-server: whatever
-      x-bind-client: do_test
-      x-auth-required: false
-      responses:
-        '200':
-          description: result
-          schema:
-            $ref: '#/definitions/Result'
-
-definitions:
-
-  Result:
-    type: object
-    description: result
-    properties:
-      foo:
-        type: string
-        description: blabla
-      bar:
-        type: string
-        description: bloblo
-"""
-
-@responses.activate
-def test_client_with_path_param():
-    handler, spec = _slurp_yaml(yaml_path_param)
-
-    responses.add(responses.GET,
-                  "http://some.server.com:80/v1/some/123/path/456",
-                  body='{"foo": "a", "bar": "b"}',
-                  status=200,
-                  content_type="application/json")
-
-    # Make a valid call
-    res = handler(foo=123, bar=456).call()
-    assert type(res).__name__ == 'Result'
-    assert res.foo == 'a'
-    assert res.bar == 'b'
-
-
-@patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_path_params(grequests):
-    handler, spec = _slurp_yaml(yaml_path_param)
-
-    try:
-        handler(foo=123, bar=456).call()
-    except Exception as e:
-        pass
-
-    grequests.get.assert_called_once_with(
-        'http://some.server.com:80/v1/some/123/path/456',
-        data=None,
-        headers={'Content-Type': 'application/json'},
-        params=None,
-        timeout=(10, 10))
-
-
-@patch('klue.swagger.client.grequests')
-def test_handler_extra_parameters(grequests):
-    handler, spec = _slurp_yaml(yaml_path_param)
-
-    try:
-        handler(
-            foo=123,
-            bar=456,
-            max_attempts=2,
-            read_timeout=6,
-            connect_timeout=8
-        ).call()
-    except Exception as e:
-        pass
-
-    grequests.get.assert_called_once_with(
-        'http://some.server.com:80/v1/some/123/path/456',
-        data=None,
-        headers={'Content-Type': 'application/json'},
-        params=None,
-        timeout=(8, 6))
-
-yaml_path_query_param = """
-swagger: '2.0'
-info:
-  title: test
-  version: '0.0.1'
-  description: Just a test
-host: some.server.com
-schemes:
-  - http
-basePath: /v1
-produces:
-  - application/json
-paths:
-  /v1/some/{foo}/path:
-    get:
-      summary: blabla
-      description: blabla
-      parameters:
-        - in: path
-          name: foo
-          description: foooo
-          required: true
-          type: string
-        - in: query
-          name: bar
-          description: baaar
-          required: true
-          type: string
-      produces:
-        - application/json
-      x-bind-server: whatever
-      x-bind-client: do_test
-      x-auth-required: false
-      responses:
-        '200':
-          description: result
-          schema:
-            $ref: '#/definitions/Result'
-
-definitions:
-
-  Result:
-    type: object
-    description: result
-    properties:
-      foo:
-        type: string
-        description: blabla
-      bar:
-        type: string
-        description: bloblo
-"""
-
-@responses.activate
-def test_client_with_path_query_param():
-    handler, spec = _slurp_yaml(yaml_path_query_param)
-
-    responses.add(responses.GET,
-                  "http://some.server.com:80/v1/some/123/path",
-                  body='{"foo": "a", "bar": "b"}',
-                  status=200,
-                  content_type="application/json")
-
-    # Make a valid call
-    res = handler(foo=123, bar=456).call()
-    assert type(res).__name__ == 'Result'
-    assert res.foo == 'a'
-    assert res.bar == 'b'
-
-@patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_path_query_params(grequests):
-    handler, spec = _slurp_yaml(yaml_path_query_param)
-
-    try:
-        handler(foo=123, bar=456).call()
-    except Exception as e:
-        pass
-
-    grequests.get.assert_called_once_with(
-        'http://some.server.com:80/v1/some/123/path',
-        data=None,
-        headers={'Content-Type': 'application/json'},
-        params={'bar': 456},
-        timeout=(10, 10))
-
-
-yaml_path_body_param = """
-swagger: '2.0'
-info:
-  title: test
-  version: '0.0.1'
-  description: Just a test
-host: some.server.com
-schemes:
-  - http
-basePath: /v1
-produces:
-  - application/json
-paths:
-  /v1/some/{foo}/path:
-    get:
-      summary: blabla
-      description: blabla
-      parameters:
-        - in: path
-          name: foo
-          description: foooo
-          required: true
-          type: string
-        - in: body
-          name: arg1
-          description: foooo
-          required: true
-          schema:
-            $ref: '#/definitions/Param'
-      produces:
-        - application/json
-      x-bind-server: whatever
-      x-bind-client: do_test
-      x-auth-required: false
-      responses:
-        '200':
-          description: result
-          schema:
-            $ref: '#/definitions/Result'
-
-definitions:
-
-  Result:
-    type: object
-    description: result
-    properties:
-      foo:
-        type: string
-        description: blabla
-      bar:
-        type: string
-        description: bloblo
-
-  Param:
-    type: object
-    description: param
-    properties:
-      arg1:
-        type: string
-        description: blabla
-      arg2:
-        type: string
-        description: bloblo
-"""
-
-@responses.activate
-def test_client_with_path_body_param():
-    handler, spec = _slurp_yaml(yaml_path_body_param)
-
-    responses.add(responses.GET,
-                  "http://some.server.com:80/v1/some/123/path",
-                  body='{"foo": "a", "bar": "b"}',
-                  status=200,
-                  content_type="application/json")
-
-    # Send a valid parameter object
-    model_class = spec.definitions['Param']
-    param = model_class(arg1='a', arg2='b')
-
-    res = handler(param, foo=123).call()
-    assert type(res).__name__ == 'Result'
-    assert res.foo == 'a'
-    assert res.bar == 'b'
-
-    # Only 1 parameter expected
-    try:
-        res = handler(foo=123)
-    except ValidationError as e:
-        assert 'expects exactly' in str(e), str(e)
-    else:
-        assert 0
-    try:
-        res = handler(1, 2, foo=123)
-    except ValidationError as e:
-        assert 'expects exactly' in str(e), str(e)
-    else:
-        assert 0
-    try:
-        res = handler(param)
-    except ValidationError as e:
-        assert 'Missing some arguments' in str(e), str(e)
-    else:
-        assert 0
-
-@patch('klue.swagger.client.grequests')
-def test_requests_parameters_with_path_body_params(grequests):
-    handler, spec = _slurp_yaml(yaml_path_body_param)
-
-    model_class = spec.definitions['Param']
-    param = model_class(arg1='a', arg2='b')
-
-    try:
-        handler(param, foo=123).call()
-    except Exception as e:
-        pass
-
-    grequests.get.assert_called_once_with(
-        'http://some.server.com:80/v1/some/123/path',
-        data='{"arg1": "a", "arg2": "b"}',
-        headers={'Content-Type': 'application/json'},
-        params=None,
-        timeout=(10, 10))
+
+utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
+
+
+class Test(utils.KlueClientTest):
+
+
+    def setUp(self):
+        super(Test, self).setUp()
+
+
+    @responses.activate
+    def test_client_with_query_param(self):
+        handler, _ = self.generate_client_and_spec(self.yaml_query_param)
+
+        responses.add(responses.GET, "http://some.server.com:80/v1/some/path",
+                      body='{"foo": "a", "bar": "b"}', status=200,
+                      content_type="application/json")
+
+        res = handler(arg1='this', arg2='that').call()
+
+        print("response: " + pprint.pformat(res))
+        self.assertEqual(type(res).__name__, 'Result')
+        self.assertEqual(res.foo, 'a')
+        self.assertEqual(res.bar, 'b')
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_parameters_with_query_param(self, grequests):
+        grequests.get = MagicMock()
+        handler, _ = self.generate_client_and_spec(self.yaml_query_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(arg1='this', arg2='that').call()
+        self.assertEqual("Expected 1 caller, got 0", str(e.exception))
+
+        grequests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
+                                              data=None,
+                                              headers={'Content-Type': 'application/json'},
+                                              params={'arg1': 'this', 'arg2': 'that'},
+                                              timeout=(10, 10))
+
+
+
+    @responses.activate
+    def test_client_with_body_param(self):
+        handler, spec = self.generate_client_and_spec(self.yaml_body_param)
+
+        responses.add(responses.POST, "http://some.server.com:80/v1/some/path",
+                      body='{"foo": "a", "bar": "b"}', status=200,
+                      content_type="application/json")
+
+        # Only 1 parameter expected
+        with self.assertRaises(ValidationError) as e:
+            res = handler()
+        with self.assertRaises(ValidationError) as e:
+            res = handler(1, 2)
+
+        # Send a valid parameter object
+        model_class = spec.definitions['Param']
+        param = model_class(arg1='a', arg2='b')
+
+        res = handler(param).call()
+        self.assertEqual(type(res).__name__, 'Result')
+        self.assertEqual(res.foo, 'a')
+        self.assertEqual(res.bar, 'b')
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_parameters_with_body_param(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_body_param)
+        model_class = spec.definitions['Param']
+        param = model_class(arg1='a', arg2='b')
+
+        with self.assertRaises(AssertionError) as e:
+            handler(param).call()
+        self.assertEqual("Expected 1 caller, got 0", str(e.exception))
+
+        grequests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
+                                               data='{"arg1": "a", "arg2": "b"}',
+                                               headers={'Content-Type': 'application/json'},
+                                               params=None,
+                                               timeout=(10, 10))
+
+
+# def test_client_with_auth_required():
+#     pass
+
+
+    def test__format_flask_url(self):
+        ref = {
+            'item_id': '1234',
+            'path': 'abcd',
+        }
+
+        data = ref.copy()
+        u = _format_flask_url(
+            "/v1/seller/<item_id>/<path>/foo",
+            data
+        )
+        self.assertEqual(u, "/v1/seller/1234/abcd/foo", u)
+        self.assertEqual(len(data.keys()), 0)
+
+        data = ref.copy()
+        u = _format_flask_url(
+            "/v1/seller/<item_id>/<path>/foo/<item_id>",
+            data,
+        )
+        self.assertEqual(u, "/v1/seller/1234/abcd/foo/1234", u)
+        self.assertEqual(len(data.keys()), 0)
+
+        data = ref.copy()
+        u = _format_flask_url(
+            "/v1/seller/<item_id>/foo",
+            data,
+        )
+        self.assertEqual(u, "/v1/seller/1234/foo", u)
+        self.assertEqual(len(data.keys()), 1)
+        self.assertEqual(data['path'], 'abcd')
+
+
+
+    @responses.activate
+    def test_client_with_path_param(self):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_param)
+
+        responses.add(responses.GET,
+                      "http://some.server.com:80/v1/some/123/path/456",
+                      body='{"foo": "a", "bar": "b"}',
+                      status=200,
+                      content_type="application/json")
+
+        # Make a valid call
+        res = handler(foo=123, bar=456).call()
+        self.assertEqual(type(res).__name__, 'Result')
+        self.assertEqual(res.foo, 'a')
+        self.assertEqual(res.bar, 'b')
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_parameters_with_path_params(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(foo=123, bar=456).call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path/456',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params=None,
+            timeout=(10, 10))
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_handler_extra_parameters(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(
+                foo=123,
+                bar=456,
+                max_attempts=2,
+                read_timeout=6,
+                connect_timeout=8
+            ).call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path/456',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params=None,
+            timeout=(8, 6))
+
+
+    @responses.activate
+    def test_client_with_path_query_param(self):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
+
+        responses.add(responses.GET,
+                      "http://some.server.com:80/v1/some/123/path",
+                      body='{"foo": "a", "bar": "b"}',
+                      status=200,
+                      content_type="application/json")
+
+        # Make a valid call
+        res = handler(foo=123, bar=456).call()
+        self.assertEqual(type(res).__name__, 'Result')
+        self.assertEqual(res.foo, 'a')
+        self.assertEqual(res.bar, 'b')
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_parameters_with_path_query_params(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(foo=123, bar=456).call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params={'bar': 456},
+            timeout=(10, 10))
+
+
+
+    @responses.activate
+    def test_client_with_path_body_param(self):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
+
+        responses.add(responses.GET,
+                      "http://some.server.com:80/v1/some/123/path",
+                      body='{"foo": "a", "bar": "b"}',
+                      status=200,
+                      content_type="application/json")
+
+        # Send a valid parameter object
+        model_class = spec.definitions['Param']
+        param = model_class(arg1='a', arg2='b')
+
+        res = handler(param, foo=123).call()
+        self.assertEqual(type(res).__name__, 'Result')
+        self.assertEqual(res.foo, 'a')
+        self.assertEqual(res.bar, 'b')
+
+        # Only 1 parameter expected
+        with self.assertRaises(ValidationError) as e:
+            res = handler(foo=123)
+        self.assertTrue('expects exactly' in str(e.exception))
+
+        with self.assertRaises(ValidationError) as e:
+            res = handler(1, 2, foo=123)
+        self.assertTrue('expects exactly' in str(e.exception))
+
+        with self.assertRaises(ValidationError) as e:
+            res = handler(param)
+        self.assertTrue('Missing some arguments' in str(e.exception))
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_parameters_with_path_body_params(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
+
+        model_class = spec.definitions['Param']
+        param = model_class(arg1='a', arg2='b')
+
+        with self.assertRaises(AssertionError) as e:
+            handler(param, foo=123).call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path',
+            data='{"arg1": "a", "arg2": "b"}',
+            headers={'Content-Type': 'application/json'},
+            params=None,
+            timeout=(10, 10))
+
+
+    @responses.activate
+    def test_client_unknown_method(self):
+        y = self.yaml_query_param
+        y = y.replace('get:', 'foobar:')
+
+        with self.assertRaises(KlueException) as e:
+            handler, spec = self.generate_client_and_spec(y)
+        self.assertTrue('BUG: method FOOBAR for /v1/some/path is not supported' in str(e.exception))
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_client_override_read_timeout(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(read_timeout=50, foo='123', bar='456').call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params={'bar': '456'},
+            timeout=(10, 50))
+
+
+    @patch('klue.swagger.client.grequests')
+    def test_requests_client_override_connect_timeout(self, grequests):
+        handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
+
+        with self.assertRaises(AssertionError) as e:
+            handler(connect_timeout=50, foo='123', bar='456').call()
+
+        grequests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/123/path',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params={'bar': '456'},
+            timeout=(50, 10))
+
+
+    @responses.activate
+    def test_client_error_callback_return_dict(self):
+
+        def callback(e):
+            return {'error': str(e)}
+
+        handler, spec = self.generate_client_and_spec(
+            self.yaml_path_body_param,
+            callback=callback,
+        )
+
+        responses.add(responses.GET,
+                      "http://some.server.com:80/v1/some/123/path",
+                      body='{"foo": "a", "bar": "b"}',
+                      status=200,
+                      content_type="application/json")
+
+        # Send a valid parameter object
+        model_class = spec.definitions['Param']
+        param = model_class(arg1='a', arg2='b')
+
+        res = handler(param).call()
+        self.assertDictEqual(
+            res,
+            {
+                'error': 'Missing some arguments to format url: http://some.server.com:80/v1/some/<foo>/path'
+            }
+        )
 
 
 # TODO: test max_attempts?

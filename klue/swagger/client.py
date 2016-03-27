@@ -171,7 +171,7 @@ class ClientCaller():
             try:
                 log.info("Calling %s %s" % (self.method, self.url))
                 responses = grequests.map([self.greq])
-                assert len(responses) == 1
+                assert len(responses) == 1, "Expected 1 caller, got %s" % len(responses)
                 response = responses[0]
 
                 if response is None:
