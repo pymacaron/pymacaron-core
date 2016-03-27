@@ -1,8 +1,6 @@
 import imp
 import os
-
 import pprint
-
 import responses
 from httplib import HTTPResponse
 from mock import patch, MagicMock
@@ -13,7 +11,7 @@ from klue.exceptions import KlueException, ValidationError
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
 
 
-class Test(utils.KlueClientTest):
+class Test(utils.KlueTest):
 
 
     def setUp(self):

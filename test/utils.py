@@ -1,12 +1,14 @@
 import pprint
 import unittest
 import yaml
+from flask import Flask, request
 from klue.swagger.spec import ApiSpec
 from klue.swagger.api import default_error_callback
 from klue.swagger.client import generate_client_callers
+from klue.swagger.server import spawn_server_api
 
 
-class KlueClientTest(unittest.TestCase):
+class KlueTest(unittest.TestCase):
 
     def generate_client_and_spec(self, yaml_str, callback=default_error_callback):
 
@@ -25,6 +27,15 @@ class KlueClientTest(unittest.TestCase):
         assert type(handler).__name__ == 'function'
 
         return handler, spec
+
+
+    def generate_server_app(self, yaml_str, callback=default_error_callback):
+        swagger_dict = yaml.load(yaml_str)
+        spec = ApiSpec(swagger_dict)
+        app = Flask('test')
+        spawn_server_api('somename', app, spec, callback, None)
+        return app, spec
+
 
 
     yaml_query_param = """
@@ -311,4 +322,135 @@ definitions:
       arg2:
         type: string
         description: bloblo
+"""
+
+    yaml_base = """
+swagger: '2.0'
+info:
+  title: test
+  version: '0.0.1'
+  description: Just a test
+host: pnt-login.elasticbeanstalk.com
+schemes:
+  - http
+basePath: /v1
+produces:
+  - application/json
+definitions:
+  SessionToken:
+    type: object
+    description: An authenticated user''s session token
+    properties:
+      token:
+        type: string
+        description: Session token.
+  Credentials:
+    type: object
+    description: A user''s login credentials.
+    properties:
+      email:
+        type: string
+        description: User''s email.
+      int:
+        type: string
+        description: MD5 of user''s password, truncated to 16 first hexadecimal characters.
+    required:
+      - email
+"""
+
+    yaml_no_param = yaml_base + """
+paths:
+  /v1/no/param:
+    get:
+      summary: blabla
+      description: blabla
+      produces:
+        - application/json
+      x-bind-server: klue.test.return_token
+      x-auth-required: false
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+"""
+
+    yaml_in_body = yaml_base + """
+paths:
+  /v1/in/body:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: body
+          name: whatever
+          description: User login credentials.
+          required: true
+          schema:
+            $ref: '#/definitions/Credentials'
+      produces:
+        - application/json
+      x-bind-server: klue.test.return_token
+      x-auth-required: false
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+"""
+
+    yaml_in_query = yaml_base + """
+paths:
+  /v1/in/query:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: query
+          name: foo
+          description: foooo
+          required: true
+          type: string
+        - in: query
+          name: bar
+          description: baaar
+          required: true
+          type: string
+      produces:
+        - application/json
+      x-bind-server: klue.test.return_token
+      x-auth-required: false
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+"""
+
+    yaml_in_path = yaml_base + """
+paths:
+  /v1/in/{item}/foo/{path}:
+    get:
+      summary: blabla
+      description: blabla
+      parameters:
+        - in: path
+          name: item
+          description: foooo
+          required: true
+          type: string
+        - in: path
+          name: path
+          description: baaar
+          required: true
+          type: string
+      produces:
+        - application/json
+      x-bind-server: klue.test.return_token
+      x-auth-required: false
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
 """
