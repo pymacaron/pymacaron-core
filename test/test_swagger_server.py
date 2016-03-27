@@ -110,7 +110,8 @@ class Test(utils.KlueTest):
             r = c.get('/v1/no/param')
             j = json.loads(r.data)
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
-            self.assertDictEqual(j,
+            self.assertDictEqual(
+                j,
                 {'token': "Method klue.test.return_token did not return a class instance but a <type 'dict'>"}
             )
 
