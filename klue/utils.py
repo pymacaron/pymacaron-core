@@ -1,3 +1,4 @@
+import traceback
 from importlib import import_module
 from klue.exceptions import KlueException
 
@@ -19,4 +20,5 @@ def get_function(pkgpath):
         f = getattr(m, func_name)
         return f
     except Exception as e:
-        raise KlueException("Failed to import %s: " % pkgpath + str(e))
+        t = traceback.format_exc()
+        raise KlueException("Failed to import %s: %s\nTrace:\n%s" % (pkgpath, str(e), t))
