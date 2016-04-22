@@ -2,6 +2,7 @@ import pprint
 import jsonschema
 import logging
 import uuid
+from functools import wraps
 from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
 from flask.ext.cors import cross_origin
@@ -65,6 +66,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         endpoint_decorator = get_function(endpoint.decorate_server)
         handler_func = endpoint_decorator(handler_func)
 
+    @wraps(handler_func)
     def handler_wrapper(**path_params):
         log.info("=> INCOMING REQUEST %s %s -> %s" %
                  (endpoint.method, endpoint.path, handler_func.__name__))
