@@ -34,9 +34,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_no_param(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_no_param)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         func.return_value = SessionToken(token='123')
 
@@ -48,10 +49,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_no_result(self, func):
-        app, spec = self.generate_server_app(self.yaml_no_param)
-
         func.__name__ = 'return_token'
         func.return_value = None
+
+        app, spec = self.generate_server_app(self.yaml_no_param)
 
         with app.test_client() as c:
             r = c.get('/v1/no/param')
@@ -60,11 +61,11 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_pass_through_responses(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_no_param)
 
         with app.test_request_context('/'):
-
-            func.__name__ = 'return_token'
             r = jsonify({'foo': 'bar'})
             r.status_code = 534
             func.return_value = r
@@ -80,10 +81,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_invalid_server_return_value(self, func):
-        app, spec = self.generate_server_app(self.yaml_no_param)
-
         func.__name__ = 'return_token'
         func.return_value = {'a': 1}
+
+        app, spec = self.generate_server_app(self.yaml_no_param)
 
         with app.test_client() as c:
             r = c.get('/v1/no/param')
@@ -92,6 +93,8 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_invalid_server_return_value_custom_callback(self, func):
+        func.__name__ = 'return_token'
+        func.return_value = {'a': 1}
 
         carrier = {'spec': None}
 
@@ -103,8 +106,6 @@ class Test(utils.KlueTest):
 
         app, spec = self.generate_server_app(self.yaml_no_param, callback=callback)
         carrier['spec'] = spec
-        func.__name__ = 'return_token'
-        func.return_value = {'a': 1}
 
         with app.test_client() as c:
             r = c.get('/v1/no/param')
@@ -133,9 +134,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_param_in_body(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         Credentials = spec.definitions['Credentials']
         func.return_value = SessionToken(token='456')
@@ -151,9 +153,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_param_in_query(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_in_query)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         func.return_value = SessionToken(token='456')
 
@@ -165,9 +168,9 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_param_in_query__missing_required_param(self, func):
+        func.__name__ = 'return_token'
         app, spec = self.generate_server_app(self.yaml_in_query)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         func.return_value = SessionToken(token='456')
 
@@ -183,9 +186,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_unmarshal_request_error__missing_required_argument(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         Credentials = spec.definitions['Credentials']
         func.return_value = SessionToken(token='456')
@@ -198,9 +202,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_unmarshal_request_error__wrong_argument_format(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         Credentials = spec.definitions['Credentials']
         func.return_value = SessionToken(token='456')
@@ -226,9 +231,10 @@ class Test(utils.KlueTest):
 
     @patch('klue.test.return_token')
     def test_swagger_server_param_in_path(self, func):
+        func.__name__ = 'return_token'
+
         app, spec = self.generate_server_app(self.yaml_in_path)
 
-        func.__name__ = 'return_token'
         SessionToken = spec.definitions['SessionToken']
         func.return_value = SessionToken(token='456')
 
