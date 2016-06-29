@@ -218,7 +218,8 @@ class ClientCaller():
                     raise e
 
         # max_attempts has been reached: propagate the last received Exception
-        log.info("Reached max-attempts. Giving up calling %s %s" % (self.method, self.url))
+        if not last_exception:
+            last_exception = Exception("Reached max-attempts (%s). Giving up calling %s %s" % (self.max_attempts, self.method, self.url)
         raise last_exception
 
     def call(self, force_retry=False):
