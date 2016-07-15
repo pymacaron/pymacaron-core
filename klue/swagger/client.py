@@ -3,6 +3,7 @@ import pprint
 import jsonschema
 import json
 import logging
+import time
 import flask
 from requests.exceptions import ReadTimeout, ConnectTimeout
 from klue.exceptions import KlueException, ValidationError
@@ -177,7 +178,9 @@ class ClientCaller():
                 if response is None:
                     log.warn("Got response None")
                     if self._method_is_safe_to_retry():
-                        log.info("Retrying since call is a %s" % self.method)
+                        delay = 0.5 + i*0.5
+                        log.info("Waiting %s sec and Retrying since call is a %s" % (delay, self.method))
+                        time.sleep(delay)
                         continue
                     else:
                         raise KlueException("Call %s %s returned empty response" % (self.method, self.url))
