@@ -178,7 +178,7 @@ class ClientCaller():
                 if response is None:
                     log.warn("Got response None")
                     if self._method_is_safe_to_retry():
-                        delay = 0.5 + i*0.5
+                        delay = 0.5 + i * 0.5
                         log.info("Waiting %s sec and Retrying since call is a %s" % (delay, self.method))
                         time.sleep(delay)
                         continue
