@@ -26,7 +26,7 @@ class Test(utils.KlueTest):
                       body='{"foo": "a", "bar": "b"}', status=200,
                       content_type="application/json")
 
-        res = handler(arg1='this', arg2='that').call()
+        res = handler(arg1='this', arg2='that')
 
         print("response: " + pprint.pformat(res))
         self.assertEqual(type(res).__name__, 'Result')
@@ -34,20 +34,20 @@ class Test(utils.KlueTest):
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_parameters_with_query_param(self, grequests):
-        grequests.get = MagicMock()
+    @patch('klue.swagger.client.requests')
+    def test_requests_parameters_with_query_param(self, requests):
+        requests.get = MagicMock()
         handler, _ = self.generate_client_and_spec(self.yaml_query_param)
 
-        with self.assertRaises(AssertionError) as e:
-            handler(arg1='this', arg2='that').call()
-        self.assertEqual("Expected 1 caller, got 0", str(e.exception))
+        with self.assertRaises(KlueException) as e:
+            handler(arg1='this', arg2='that')
+        # self.assertEqual("Expected 1 caller, got 0", str(e.exception))
 
-        grequests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                              data=None,
-                                              headers={'Content-Type': 'application/json'},
-                                              params={'arg1': 'this', 'arg2': 'that'},
-                                              timeout=(10, 10))
+        requests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
+                                             data=None,
+                                             headers={'Content-Type': 'application/json'},
+                                             params={'arg1': 'this', 'arg2': 'that'},
+                                             timeout=(10, 10))
 
 
 
@@ -69,27 +69,26 @@ class Test(utils.KlueTest):
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        res = handler(param).call()
+        res = handler(param)
         self.assertEqual(type(res).__name__, 'Result')
         self.assertEqual(res.foo, 'a')
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_parameters_with_body_param(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_parameters_with_body_param(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_body_param)
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(AssertionError) as e:
-            handler(param).call()
-        self.assertEqual("Expected 1 caller, got 0", str(e.exception))
+        with self.assertRaises(KlueException) as e:
+            handler(param)
 
-        grequests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                               data='{"arg1": "a", "arg2": "b"}',
-                                               headers={'Content-Type': 'application/json'},
-                                               params=None,
-                                               timeout=(10, 10))
+        requests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
+                                              data='{"arg1": "a", "arg2": "b"}',
+                                              headers={'Content-Type': 'application/json'},
+                                              params=None,
+                                              timeout=(10, 10))
 
 
 # def test_client_with_auth_required():
@@ -140,20 +139,20 @@ class Test(utils.KlueTest):
                       content_type="application/json")
 
         # Make a valid call
-        res = handler(foo=123, bar=456).call()
+        res = handler(foo=123, bar=456)
         self.assertEqual(type(res).__name__, 'Result')
         self.assertEqual(res.foo, 'a')
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_parameters_with_path_params(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_parameters_with_path_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(AssertionError) as e:
-            handler(foo=123, bar=456).call()
+        with self.assertRaises(KlueException) as e:
+            handler(foo=123, bar=456)
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path/456',
             data=None,
             headers={'Content-Type': 'application/json'},
@@ -161,25 +160,26 @@ class Test(utils.KlueTest):
             timeout=(10, 10))
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_handler_extra_parameters(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_handler_extra_parameters(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(AssertionError) as e:
+        with self.assertRaises(KlueException) as e:
             handler(
                 foo=123,
                 bar=456,
                 max_attempts=2,
                 read_timeout=6,
                 connect_timeout=8
-            ).call()
+            )
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path/456',
             data=None,
             headers={'Content-Type': 'application/json'},
             params=None,
-            timeout=(8, 6))
+            timeout=(8, 6)
+        )
 
 
     @responses.activate
@@ -193,20 +193,20 @@ class Test(utils.KlueTest):
                       content_type="application/json")
 
         # Make a valid call
-        res = handler(foo=123, bar=456).call()
+        res = handler(foo=123, bar=456)
         self.assertEqual(type(res).__name__, 'Result')
         self.assertEqual(res.foo, 'a')
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_parameters_with_path_query_params(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_parameters_with_path_query_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(AssertionError) as e:
-            handler(foo=123, bar=456).call()
+        with self.assertRaises(KlueException) as e:
+            handler(foo=123, bar=456)
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path',
             data=None,
             headers={'Content-Type': 'application/json'},
@@ -229,7 +229,7 @@ class Test(utils.KlueTest):
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        res = handler(param, foo=123).call()
+        res = handler(param, foo=123)
         self.assertEqual(type(res).__name__, 'Result')
         self.assertEqual(res.foo, 'a')
         self.assertEqual(res.bar, 'b')
@@ -248,17 +248,17 @@ class Test(utils.KlueTest):
         self.assertTrue('Missing some arguments' in str(e.exception))
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_parameters_with_path_body_params(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_parameters_with_path_body_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
 
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(AssertionError) as e:
-            handler(param, foo=123).call()
+        with self.assertRaises(KlueException) as e:
+            handler(param, foo=123)
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path',
             data='{"arg1": "a", "arg2": "b"}',
             headers={'Content-Type': 'application/json'},
@@ -276,14 +276,14 @@ class Test(utils.KlueTest):
         self.assertTrue('BUG: method FOOBAR for /v1/some/path is not supported' in str(e.exception))
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_client_override_read_timeout(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_client_override_read_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(AssertionError) as e:
-            handler(read_timeout=50, foo='123', bar='456').call()
+        with self.assertRaises(KlueException) as e:
+            handler(read_timeout=50, foo='123', bar='456')
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path',
             data=None,
             headers={'Content-Type': 'application/json'},
@@ -291,14 +291,14 @@ class Test(utils.KlueTest):
             timeout=(10, 50))
 
 
-    @patch('klue.swagger.client.grequests')
-    def test_requests_client_override_connect_timeout(self, grequests):
+    @patch('klue.swagger.client.requests')
+    def test_requests_client_override_connect_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(AssertionError) as e:
-            handler(connect_timeout=50, foo='123', bar='456').call()
+        with self.assertRaises(KlueException) as e:
+            handler(connect_timeout=50, foo='123', bar='456')
 
-        grequests.get.assert_called_once_with(
+        requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path',
             data=None,
             headers={'Content-Type': 'application/json'},
@@ -327,7 +327,8 @@ class Test(utils.KlueTest):
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        res = handler(param).call()
+        res = handler(param)
+        print("got: %s" % res)
         self.assertDictEqual(
             res,
             {

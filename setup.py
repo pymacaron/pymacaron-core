@@ -34,10 +34,9 @@ setup(
     license='BSD',
     author='Erwan Lemonnier',
     author_email='erwan@lemonnier.se',
-    description='Swagger + Flask + Grequests + Bravado = Client/Server auto-spawning',
+    description='Swagger + Flask + Bravado = Client/Server auto-spawning',
     install_requires=[
         'flask',
-        'grequests',
         'bravado-core',
         'pyyaml'
     ],

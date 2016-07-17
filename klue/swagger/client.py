@@ -1,4 +1,4 @@
-import grequests
+import requests
 import pprint
 import jsonschema
 import json
@@ -57,10 +57,9 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
                             (endpoint.method, endpoint.path))
 
-    grequests_method = getattr(grequests, method)
+    requests_method = getattr(requests, method)
     if decorator:
-        grequests_method = decorator(grequests_method)
-    import pprint
+        requests_method = decorator(requests_method)
 
     def client(*args, **kwargs):
         """Call the server endpoint and handle marshaling/unmarshaling of parameters/result.
@@ -101,7 +100,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             custom_url = _format_flask_url(url, kwargs)
             if '<' in custom_url:
                 # Some arguments were missing
-                return ErrorWrapper(error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url)))
+                return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
         if endpoint.param_in_query:
             # The query parameters are contained in **kwargs
@@ -110,18 +109,11 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         elif endpoint.param_in_body:
             # The body parameter is the first elem in *args
             if len(args) != 1:
-                return ErrorWrapper(error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)))
+                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
             data = json.dumps(spec.model_to_json(args[0]))
 
-        # TODO: if request times-out, retry a few times, else return KlueTimeOutError
-        # Call the right grequests method (get, post...)
-        greq = grequests_method(custom_url,
-                                data=data,
-                                params=params,
-                                headers=headers,
-                                timeout=(connect_timeout, read_timeout))
-
-        return ClientCaller(greq, custom_url, endpoint.operation, endpoint.method, error_callback, max_attempts)
+        # TODO: refactor this left-over from the time of asyn/grequests support and simplify!
+        return ClientCaller(requests_method, custom_url, data, params, headers, read_timeout, connect_timeout, endpoint.operation, endpoint.method, error_callback, max_attempts).call()
 
     return client
 
@@ -141,23 +133,18 @@ def _format_flask_url(url, params):
     return url
 
 
-class ErrorWrapper():
-    """A fake ClientCaller that carries an error occured during preparing the call"""
-
-    def __init__(self, result):
-        self.result = result
-
-    def call(self, **kwargs):
-        return self.result
-
-
 class ClientCaller():
 
-    def __init__(self, greq, url, operation, method, error_callback, max_attempts):
+    def __init__(self, requests_method, url, data, params, headers, read_timeout, connect_timeout, operation, method, error_callback, max_attempts):
         assert max_attempts >= 1
+        self.requests_method = requests_method
         self.url = url
         self.operation = operation
-        self.greq = greq
+        self.data = data
+        self.params = params
+        self.headers = headers
+        self.read_timeout = read_timeout
+        self.connect_timeout = connect_timeout
         self.method = method.upper()
         self.error_callback = error_callback
         self.max_attempts = max_attempts
@@ -171,9 +158,13 @@ class ClientCaller():
         for i in range(self.max_attempts):
             try:
                 log.info("Calling %s %s" % (self.method, self.url))
-                responses = grequests.map([self.greq])
-                assert len(responses) == 1, "Expected 1 caller, got %s" % len(responses)
-                response = responses[0]
+                response = self.requests_method(
+                    self.url,
+                    data=self.data,
+                    params=self.params,
+                    headers=self.headers,
+                    timeout=(self.connect_timeout, self.read_timeout),
+                )
 
                 if response is None:
                     log.warn("Got response None")
@@ -237,6 +228,7 @@ class ClientCaller():
                 pass
             else:
                 # Unknown exception...
+                log.info("Unknown exce: " + response.text)
                 k = KlueException(response.text)
                 k.status_code = response.status_code
                 return self.error_callback(k)
@@ -255,14 +247,3 @@ class ClientCaller():
             k.status_code = 500
             return self.error_callback(k)
         return result
-
-def async_call(*client_callers):
-    """Call these server endpoints asynchronously and return Model or Error objects"""
-    # TODO: add retry handler to map
-    # TODO: call callers.greq
-    responses = grequests.map(client_callers)
-    results = []
-    for i in xrange(1, len(responses)):
-        client_caller = client_callers[i]
-        response = responses[i]
-        results.append(client_caller._unmarshal(response))
