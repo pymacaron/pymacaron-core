@@ -153,7 +153,7 @@ class ClientCaller():
         return self.method in ('GET', 'PATCH')
 
     def _call_retry(self, force_retry):
-        """Call grequest and retry up to max_attempts times (or none if self.max_attempts=1)"""
+        """Call request and retry up to max_attempts times (or none if self.max_attempts=1)"""
         last_exception = None
         for i in range(self.max_attempts):
             try:

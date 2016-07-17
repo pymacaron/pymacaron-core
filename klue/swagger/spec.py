@@ -137,7 +137,7 @@ class ApiSpec():
                 if 'x-decorate-server' in op_spec:
                     data.decorate_server = op_spec['x-decorate-server']
 
-                # Should we manipulate the grequests parameters?
+                # Should we manipulate the requests parameters?
                 if 'x-decorate-request' in op_spec:
                     data.decorate_request = op_spec['x-decorate-request']
 
