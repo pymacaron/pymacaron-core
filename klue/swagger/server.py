@@ -5,7 +5,7 @@ import uuid
 from functools import wraps
 from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
-from flask.ext.cors import cross_origin
+from flask_cors import cross_origin
 from klue.exceptions import KlueException, ValidationError, add_error_handlers
 from klue.utils import get_function
 from bravado_core.operation import Operation
