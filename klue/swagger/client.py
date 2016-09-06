@@ -231,7 +231,10 @@ class ClientCaller():
                 log.info("Unknown exception: " + response.text)
                 k = KlueException("Call to %s %s returned unknown exception: %s" % (self.method, self.url, response.text))
                 k.status_code = response.status_code
-                return self.error_callback.__func__(k)
+                c = self.error_callback
+                if hasattr(c, '__func__'):
+                    c = c.__func__
+                return c(k)
 
         result = self._unmarshal(response)
         log.info("Call to %s %s returned an instance of %s" % (self.method, self.url, type(result)))
@@ -245,5 +248,8 @@ class ClientCaller():
         except jsonschema.exceptions.ValidationError as e:
             log.warn("Failed to unmarshal response: %s" % e)
             k = ValidationError("Failed to unmarshal response because: %s" % str(e))
-            return self.error_callback.__func__(k)
+            c = self.error_callback
+            if hasattr(c, '__func__'):
+                c = c.__func__
+            return c(k)
         return result
