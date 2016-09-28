@@ -39,7 +39,7 @@ def spawn_server_api(api_name, app, api_spec, error_callback, decorator):
 
         # Bind handler to the API path
         log.info("Binding %s %s ==> %s" % (endpoint.method, endpoint.path, endpoint.handler_server))
-        endpoint_name = endpoint.path.replace('/', '_')
+        endpoint_name = '_'.join([endpoint.method, endpoint.path]).replace('/', '_')
         app.add_url_rule(endpoint.path, endpoint_name, handler_wrapper, methods=[endpoint.method])
 
 
