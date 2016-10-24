@@ -19,6 +19,8 @@ class EndpointData():
     decorate_server = None
     decorate_request = None
     operation = None
+    produces_json = False
+    produces_html = False
 
     param_in_body = False
     param_in_query = False
@@ -126,8 +128,12 @@ class ApiSpec():
                     raise Exception("Swagger api has no 'produces' section for %s %s" % (method, path))
                 if len(op_spec['produces']) != 1:
                     raise Exception("Expecting only one type under 'produces' for %s %s" % (method, path))
-                if 'application/json' not in op_spec['produces']:
-                    raise Exception("Only 'application/json' is supported. See %s %s" % (method, path))
+                if op_spec['produces'][0] == 'application/json':
+                    data.produces_json = True
+                elif op_spec['produces'][0] == 'text/html':
+                    data.produces_html = True
+                else:
+                    raise Exception("Only 'application/json' or 'text/html' are supported. See %s %s" % (method, path))
 
                 # Which client method handles this endpoint?
                 if 'x-bind-client' in op_spec:

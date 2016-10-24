@@ -123,33 +123,43 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         result = handler_func(*args, **kwargs)
 
-        # Did we get the expected response?
         if not result:
             e = error_callback(KlueException("Have nothing to send in response"))
             return _responsify(api_spec, e, 500)
 
-        if not hasattr(result, '__module__') or not hasattr(result, '__class__'):
-            e = error_callback(KlueException("Method %s did not return a class instance but a %s" %
-                                             (endpoint.handler_server, type(result))))
-            return _responsify(api_spec, e, 500)
+        # Did we get the expected response?
+        if endpoint.produces_html:
+            if type(result) is not tuple:
+                e = error_callback(KlueException("Method %s should return %s but returned %s" %
+                                                 (endpoint.handler_server, endpoint.produces, type(result))))
+                return _responsify(api_spec, e, 500)
 
-        # If it's already a flask Response, just pass it through.
-        # Errors in particular may be either passed back as flask Responses, or
-        # raised as exceptions to be caught and formatted by the error_callback
-        result_type = result.__module__ + "." + result.__class__.__name__
-        if result_type == 'flask.wrappers.Response':
+            # Return an html page
             return result
 
-        # Otherwise, assume no error occured and make a flask Response out of
-        # the result.
+        elif endpoint.produces_json:
+            if not hasattr(result, '__module__') or not hasattr(result, '__class__'):
+                e = error_callback(KlueException("Method %s did not return a class instance but a %s" %
+                                                 (endpoint.handler_server, type(result))))
+                return _responsify(api_spec, e, 500)
 
-        # TODO: check that result is an instance of a model expected as response from this endpoint
-        result_json = api_spec.model_to_json(result)
+            # If it's already a flask Response, just pass it through.
+            # Errors in particular may be either passed back as flask Responses, or
+            # raised as exceptions to be caught and formatted by the error_callback
+            result_type = result.__module__ + "." + result.__class__.__name__
+            if result_type == 'flask.wrappers.Response':
+                return result
 
-        # Send a Flask Response with code 200 and result_json
-        r = jsonify(result_json)
-        r.status_code = 200
-        return r
+            # Otherwise, assume no error occured and make a flask Response out of
+            # the result.
+
+            # TODO: check that result is an instance of a model expected as response from this endpoint
+            result_json = api_spec.model_to_json(result)
+
+            # Send a Flask Response with code 200 and result_json
+            r = jsonify(result_json)
+            r.status_code = 200
+            return r
 
     handler_wrapper = cross_origin(headers=['Content-Type', 'Authorization'])(handler_wrapper)
 

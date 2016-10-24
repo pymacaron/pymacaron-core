@@ -7,6 +7,10 @@ from klue.swagger.spec import ApiSpec
 
 class Tests(unittest.TestCase):
 
+    # Method called in yaml specs below
+    def foo(self):
+        pass
+
     def test_apispec_constructor__scheme_http(self):
         yaml_str = """
 swagger: '2.0'
@@ -74,10 +78,6 @@ produces:
         self.assertEqual(spec.version, '0.0.1')
 
 
-    def foo(self):
-        pass
-
-
     def test_call_on_each_endpoint__missing_produces(self):
         yaml_str = """
 swagger: '2.0'
@@ -126,7 +126,7 @@ paths:
         swagger_dict = yaml.load(yaml_str)
         spec = ApiSpec(swagger_dict)
 
-        with self.assertRaisesRegexp(Exception, "Only 'application/json' is supported"):
+        with self.assertRaisesRegexp(Exception, "Only 'application/json' or 'text/html' are supported."):
             spec.call_on_each_endpoint(self.foo)
 
 
@@ -196,7 +196,7 @@ paths:
           schema:
             $ref: '#/definitions/SessionToken'
 
-  /v1/auth/logout/:
+  /v1/auth/logout:
     get:
       summary: blabla
       description: blabla
@@ -216,13 +216,27 @@ paths:
           schema:
             $ref: '#/definitions/SessionToken'
 
-  /v1/version/:
+  /v1/version:
     get:
       summary: blabla
       description: blabla
       produces:
         - application/json
       x-bind-server: do_version
+      x-decorate-server: foo.bar.baz
+      responses:
+        200:
+          description: A session token
+          schema:
+            $ref: '#/definitions/SessionToken'
+
+  /v1/versionhtml:
+    get:
+      summary: blabla
+      description: blabla
+      produces:
+        - text/html
+      x-bind-server: do_version_html
       x-decorate-server: foo.bar.baz
       responses:
         200:
@@ -256,7 +270,7 @@ paths:
           schema:
             $ref: '#/definitions/SessionToken'
 
-  /v1/ignoreme/:
+  /v1/ignoreme:
     get:
       summary: blabla
       description: blabla
@@ -312,6 +326,8 @@ definitions:
                 self.assertFalse(data.param_in_body)
                 self.assertTrue(data.param_in_query)
                 self.assertFalse(data.no_params)
+                self.assertTrue(data.produces_json)
+                self.assertFalse(data.produces_html)
 
             elif data.path == '/v1/auth/login':
                 self.assertEqual(data.method, 'POST')
@@ -323,6 +339,8 @@ definitions:
                 self.assertFalse(data.param_in_query)
                 self.assertFalse(data.param_in_path)
                 self.assertFalse(data.no_params)
+                self.assertTrue(data.produces_json)
+                self.assertFalse(data.produces_html)
 
             elif data.path == '/v1/version':
                 self.assertEqual(data.method, 'GET')
@@ -334,6 +352,21 @@ definitions:
                 self.assertFalse(data.param_in_query)
                 self.assertFalse(data.param_in_path)
                 self.assertTrue(data.no_params)
+                self.assertTrue(data.produces_json)
+                self.assertFalse(data.produces_html)
+
+            elif data.path == '/v1/versionhtml':
+                self.assertEqual(data.method, 'GET')
+                self.assertEqual(data.handler_server, 'do_version_html')
+                self.assertIsNone(data.handler_client)
+                self.assertIsNone(data.decorate_request)
+                self.assertEqual(data.decorate_server, 'foo.bar.baz')
+                self.assertFalse(data.param_in_body)
+                self.assertFalse(data.param_in_query)
+                self.assertFalse(data.param_in_path)
+                self.assertTrue(data.no_params)
+                self.assertFalse(data.produces_json)
+                self.assertTrue(data.produces_html)
 
             elif data.path == '/v1/hybrib':
                 self.assertEqual(data.method, 'GET')
@@ -345,10 +378,12 @@ definitions:
                 self.assertFalse(data.param_in_query)
                 self.assertTrue(data.param_in_path)
                 self.assertTrue(data.no_params)
+                self.assertTrue(data.produces_json)
+                self.assertFalse(data.produces_html)
 
         spec.call_on_each_endpoint(test_callback)
 
-        self.assertEqual(Tests.call_count, 4)
+        self.assertEqual(Tests.call_count, 5)
 
 
     yaml_complex_model = """
