@@ -5,6 +5,7 @@ from bravado_core.spec import Spec
 from bravado_core.operation import Operation
 from bravado_core.marshal import marshal_model
 from bravado_core.unmarshal import unmarshal_model
+from bravado_core.validate import validate_schema_object
 
 
 log = logging.getLogger(__name__)
@@ -99,6 +100,15 @@ class ApiSpec():
         model_def = self.swagger_dict['definitions'][model_name]
         log.debug("Unmarshalling json into %s" % model_name)
         return unmarshal_model(self.spec, model_def, j)
+
+
+    def validate(self, model_name, object):
+        """Validate an object against its swagger model"""
+        if model_name not in self.swagger_dict['definitions']:
+            raise ValidationError("Swagger spec has no definition for model %s" % model_name)
+        model_def = self.swagger_dict['definitions'][model_name]
+        log.debug("Validating %s" % model_name)
+        return validate_schema_object(self.spec, model_def, object)
 
 
     def call_on_each_endpoint(self, callback):

@@ -416,12 +416,19 @@ definitions:
     description: Bar
     properties:
       a:
-        type: string
+        type: number
         description: a
+        format: int32
       b:
         type: string
         format: date-time
         description: b
+      c:
+        type: number
+        format: int32
+        description: c
+    required:
+      - a
 """
 
 
@@ -436,7 +443,7 @@ definitions:
         f = Foo(
             token='abcd',
             bar=Bar(
-                a='1',
+                a=1,
                 b=date.today()
             )
         )
@@ -447,7 +454,7 @@ definitions:
         self.assertDictEqual(j, {
             'token': 'abcd',
             'bar': {
-                'a': '1',
+                'a': 1,
                 'b': date.today().isoformat()
             }
         })
@@ -460,7 +467,7 @@ definitions:
         j = {
             'token': 'abcd',
             'bar': {
-                'a': '1',
+                'a': 1,
                 'b': date.today().isoformat()
             }
         }
@@ -473,5 +480,48 @@ definitions:
         self.assertEqual(m.token, 'abcd')
         b = m.bar
         self.assertEqual(b.__class__.__name__, 'Bar')
-        self.assertEqual(b.a, '1')
+        self.assertEqual(b.a, 1)
         self.assertEqual(str(b.b), str(date.today()) + " 00:00:00")
+
+
+    def test_validate(self):
+        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        spec = ApiSpec(swagger_dict)
+
+        f = {
+            'token': 'abcd',
+            'bar': {
+                'a': 1,
+                'b': date.today().isoformat()
+            }
+        }
+
+        # validate ok!
+        m = spec.validate('Foo', f)
+
+        # missing required property
+        f = {'bar': {}}
+        try:
+            m = spec.validate('Foo', f)
+        except Exception as e:
+            self.assertTrue("'a' is a required property" in str(e))
+        else:
+            assert 0
+
+        # invalid type
+        f = {'a': 'oaeuaoue'}
+        try:
+            m = spec.validate('Bar', f)
+        except Exception as e:
+            self.assertTrue("'oaeuaoue' is not of type 'number'" in str(e))
+        else:
+            assert 0
+
+        # invalid object reference type
+        f = {'bar': '123'}
+        try:
+            m = spec.validate('Foo', f)
+        except Exception as e:
+            self.assertTrue("'123' is not of type 'object'" in str(e))
+        else:
+            assert 0
