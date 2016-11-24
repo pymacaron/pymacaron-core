@@ -148,6 +148,7 @@ The client method passes path and query parameters as kwarg arguments. The POST 
 as an instance of an ApiPool model. For example, to pass a request body:
 
 .. code-block:: python
+
    # To call
    # 'POST v1/item' with the body {name: 'foo', surname: 'bar'}
    # where the endpoint was defined with:
@@ -170,6 +171,7 @@ as an instance of an ApiPool model. For example, to pass a request body:
 For example, to pass query and path arguments:
 
 .. code-block:: python
+
    # Assuming the endpoint:
    # /v1/user/<id>:
    #   get:
