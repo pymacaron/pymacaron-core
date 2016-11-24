@@ -69,6 +69,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         """
 
         # Extract custom parameters from **kwargs
+        headers = {'Content-Type': 'application/json'}
         max_attempts = 3
         read_timeout = timeout
         connect_timeout = timeout
@@ -82,9 +83,11 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
         if 'connect_timeout' in kwargs:
             connect_timeout = kwargs['connect_timeout']
             del kwargs['connect_timeout']
+        if 'request_headers' in kwargs:
+            headers.update(kwargs['request_headers'])
+            del kwargs['request_headers']
 
         # Prepare (g)requests arguments
-        headers = {'Content-Type': 'application/json'}
         data = None
         params = None
 

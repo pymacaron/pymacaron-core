@@ -142,7 +142,63 @@ Calling that server now looks like (assuming the server api is called 'public'):
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
-    version = ApiPool.public.client.version().call()
+    version = ApiPool.public.client.version()
+
+The client method passes path and query parameters as kwarg arguments. The POST request body is passed
+as an instance of an ApiPool model. For example, to pass a request body:
+
+.. code-block:: python
+   # To call
+   # 'POST v1/item' with the body {name: 'foo', surname: 'bar'}
+   # where the endpoint was defined with:
+   # /v1/user:
+   #   post:
+   #     parameters:
+   #       - in: body
+   #         name: body
+   #         schema:
+   #           $ref: "#/definitions/NameSurname"
+   #   x-bind-client: create_user
+
+   res = ApiPool.example.client.create_user(
+       ApiPool.example.model.NameSurname(
+           name='foo',
+           surname='bar'
+       )
+   )
+
+For example, to pass query and path arguments:
+
+.. code-block:: python
+   # Assuming the endpoint:
+   # /v1/user/<id>:
+   #   get:
+   #     parameters:
+   #       - in: path
+   #         name: id
+   #         type: string
+   #       - in: query
+   #         name: uppercase
+   #         type: boolean
+   #   x-bind-client: get_user
+
+   user = ApiPool.example.client.get_user(
+       id='user_9327234',
+       uppercase=True
+   )
+
+All client methods support the following extra kwarg parameters:
+
+* max_attempts: how many times the client should try calling the server
+  endpoint upon failure. Defaults to 3, with an increasing delay of .5 seconds,
+  1.5, then 2.5, etc.
+
+* read_timeout: the read timeout in seconds, passed to the requests module.
+
+* connect_timeout: the connect timeout in seconds, passed to the requests module.
+
+* request_headers: a dictionary of extra headers to add to the HTTP request
+  (The request already contains 'Content-Type'='application/json' by default).
 
 
 Authentication
