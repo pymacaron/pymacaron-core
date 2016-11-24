@@ -202,6 +202,20 @@ All client methods support the following extra kwarg parameters:
 * request_headers: a dictionary of extra headers to add to the HTTP request
   (The request already contains 'Content-Type'='application/json' by default).
 
+As in:
+
+.. code-block:: python
+
+    results = ApiPool.search.client.search(
+        query=query_words,
+        page=0,
+        country=country,
+        request_headers={
+            'Authorization': 'Bearer %s' % token,
+        },
+        max_attempts=2
+    )
+
 
 Authentication
 ==============
