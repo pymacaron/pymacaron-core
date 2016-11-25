@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import flask
+import urllib
 from requests.exceptions import ReadTimeout, ConnectTimeout
 from klue.exceptions import KlueException, ValidationError
 from klue.utils import get_function
@@ -20,7 +21,7 @@ except ImportError:
     from flask import _request_ctx_stack as stack
 
 
-def generate_client_callers(spec, timeout, error_callback, local):
+def generate_client_callers(spec, timeout, error_callback, local, app):
     """Return a dict mapping method names to anonymous functions that
     will call the server's endpoint of the corresponding name as
     described in the api defined by the swagger dict and bravado spec"""
@@ -33,7 +34,7 @@ def generate_client_callers(spec, timeout, error_callback, local):
 
         log.info("Generating client for %s %s" % (endpoint.method, endpoint.path))
 
-        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback, local)
+        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
 
     spec.call_on_each_endpoint(mycallback)
 
@@ -65,19 +66,33 @@ def _generate_request_arguments(url, spec, endpoint, headers, args, kwargs):
             raise ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)
         data = json.dumps(spec.model_to_json(args[0]))
 
+    # Prune undefined parameters that would otherwise be turned into '=None'
+    # query params
+    if params:
+        for k in params.keys():
+            if params[k] is None:
+                del params[k]
+
     return custom_url, params, data, headers
 
 
-# Generate a temporary flask context used for local client calls
-myapp = flask.Flask(__name__)
+def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app):
 
-def _generate_client_caller(spec, endpoint, timeout, error_callback, local):
+    if local:
+        assert app
 
-    url = "%s://%s:%s/%s" % (spec.protocol,
-                             spec.host,
-                             spec.port,
-                             endpoint.path.lstrip('/'))
+    # Is the endpoint available locally?
+    if local:
+        url = endpoint.path.lstrip('/')
+    else:
+        url = "%s://%s:%s/%s" % (
+            spec.protocol,
+            spec.host,
+            spec.port,
+            endpoint.path.lstrip('/')
+        )
 
+    # Get eventual decorator and http method
     decorator = None
     if endpoint.decorate_request:
         decorator = get_function(endpoint.decorate_request)
@@ -87,6 +102,45 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local):
         raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
                             (endpoint.method, endpoint.path))
 
+    # Are we doing a local call?
+    if local:
+        def local_client(*args, **kwargs):
+            """Just call the local method"""
+            log.info("Calling %s locally via flask test_client" % (endpoint.path))
+
+            headers = {'Content-Type': 'application/json'}
+            headers.update(kwargs.get('request_headers', {}))
+
+            # Remove magic client parameters before passing on
+            for k in ('max_attempts', 'read_timeout', 'connect_timeout', 'request_headers'):
+                if k in kwargs:
+                    del kwargs[k]
+
+            custom_url, params, data, headers = _generate_request_arguments(url, spec, endpoint, headers, args, kwargs)
+            if '<' in custom_url:
+                # Some arguments were missing
+                return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
+
+            if params:
+                custom_url = custom_url + '?' + urllib.urlencode(params)
+            log.info("Calling with params [%s]" % params)
+
+            with app.test_client() as c:
+                requests_method = getattr(c, method)
+                if decorator:
+                    requests_method = decorator(requests_method)
+
+                response = requests_method(
+                    custom_url,
+                    data=data,
+                    headers=headers
+                )
+
+            return response_to_result(response, method, custom_url, endpoint.operation, error_callback)
+
+        return local_client
+
+    # Else call over HTTP/HTTPS
     requests_method = getattr(requests, method)
     if decorator:
         requests_method = decorator(requests_method)
@@ -123,7 +177,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local):
             # Some arguments were missing
             return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
-        # TODO: refactor this left-over from the time of asyn/grequests support and simplify!
+        # TODO: refactor this left-over from the time of async/grequests support and simplify!
         return ClientCaller(requests_method, custom_url, data, params, headers, read_timeout, connect_timeout, endpoint.operation, endpoint.method, error_callback, max_attempts).call()
 
     return client
@@ -142,6 +196,51 @@ def _format_flask_url(url, params):
         del params[name]
 
     return url
+
+
+def response_to_result(response, method, url, operation, error_callback):
+
+    # Monkey patching flask test_client response if necessary
+    if not hasattr(response, 'text'):
+        setattr(response, 'text', str(response.data))
+        j = json.loads(str(response.data))
+
+        def get_json():
+            return j
+
+        setattr(response, 'json', get_json)
+
+    # If the remote-server returned an error, raise it as a local KlueException
+    if str(response.status_code) != '200':
+        log.warn("Call to %s %s returns error: %s" % (method, url, response.text))
+        if 'error_description' in response.text:
+            # We got a KlueException: unmarshal it and return as valid return value
+            # UGLY FRAGILE CODE. To be replaced by proper exception scheme
+            pass
+        else:
+            # Unknown exception...
+            log.info("Unknown exception: " + response.text)
+            k = KlueException("Call to %s %s returned unknown exception: %s" % (method, url, response.text))
+            k.status_code = response.status_code
+            c = error_callback
+            if hasattr(c, '__func__'):
+                c = c.__func__
+            return c(k)
+
+    # Now transform the request's Response object into an instance of a
+    # swagger model
+    try:
+        result = unmarshal_response(response, operation)
+    except jsonschema.exceptions.ValidationError as e:
+        log.warn("Failed to unmarshal response: %s" % e)
+        k = ValidationError("Failed to unmarshal response because: %s" % str(e))
+        c = error_callback
+        if hasattr(c, '__func__'):
+            c = c.__func__
+        return c(k)
+
+    log.info("Call to %s %s returned an instance of %s" % (method, url, type(result)))
+    return result
 
 
 class ClientCaller():
@@ -229,38 +328,4 @@ class ClientCaller():
 
     def call(self, force_retry=False):
         response = self._call_retry(force_retry)
-
-        # If the remote-server returned an error, raise it as a local KlueException
-        if str(response.status_code) != '200':
-            log.warn("Call to %s %s returns error: %s" % (self.method, self.url, response.text))
-            if 'error_description' in response.text:
-                # We got a KlueException: unmarshal it and return as valid return value
-                # UGLY FRAGILE CODE. To be replaced by proper exception scheme
-                pass
-            else:
-                # Unknown exception...
-                log.info("Unknown exception: " + response.text)
-                k = KlueException("Call to %s %s returned unknown exception: %s" % (self.method, self.url, response.text))
-                k.status_code = response.status_code
-                c = self.error_callback
-                if hasattr(c, '__func__'):
-                    c = c.__func__
-                return c(k)
-
-        result = self._unmarshal(response)
-        log.info("Call to %s %s returned an instance of %s" % (self.method, self.url, type(result)))
-        return result
-
-    def _unmarshal(self, response):
-        # Now transform the request's Response object into an instance of a
-        # swagger model
-        try:
-            result = unmarshal_response(response, self.operation)
-        except jsonschema.exceptions.ValidationError as e:
-            log.warn("Failed to unmarshal response: %s" % e)
-            k = ValidationError("Failed to unmarshal response because: %s" % str(e))
-            c = self.error_callback
-            if hasattr(c, '__func__'):
-                c = c.__func__
-            return c(k)
-        return result
+        return response_to_result(response, self.method, self.url, self.operation, self.error_callback)

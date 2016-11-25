@@ -18,7 +18,8 @@ class KlueTest(unittest.TestCase):
             spec,
             10,
             callback,
-            local
+            local,
+            None
         )
 
         assert len(callers_dict.keys()) == 1

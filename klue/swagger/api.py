@@ -66,6 +66,9 @@ class API():
     # The api's name
     name = None
 
+    # The flask app
+    app = None
+
     # Is the endpoint callable directly as a python method from within the server?
     # (true is the flask server also serves that api)
     local = False
@@ -111,7 +114,15 @@ class API():
         # Auto-generate client callers
         # so we can write
         # api.call.login(param)  => call /v1/login/ on server with param as json parameter
-        callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback, self.local)
+        self._generate_client_callers()
+
+    def _generate_client_callers(self, app=None):
+        # If app is defined, we are doing local calls
+        if app:
+            callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback, True, app)
+        else:
+            callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback, False, None)
+
         for method, caller in callers_dict.items():
             setattr(self.client, method, caller)
 
@@ -159,6 +170,12 @@ class API():
         if decorator:
             assert type(decorator).__name__ == 'function'
         self.is_server = True
+        self.app = app
+
+        if self.local:
+            # Re-generate client callers, this time as local and passing them the app
+            self._generate_client_callers(app)
+
         return spawn_server_api(self.name, app, self.api_spec, self.error_callback, decorator)
 
 
