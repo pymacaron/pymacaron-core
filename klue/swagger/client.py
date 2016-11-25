@@ -122,6 +122,9 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
                 return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
             if params:
+                for k, v in params.iteritems():
+                    if isinstance(v, unicode) or isinstance(v, str):
+                        params[k] = v.encode('utf-8')
                 custom_url = custom_url + '?' + urllib.urlencode(params)
             log.info("Calling with params [%s]" % params)
 
