@@ -20,7 +20,7 @@ except ImportError:
     from flask import _request_ctx_stack as stack
 
 
-def generate_client_callers(spec, timeout, error_callback):
+def generate_client_callers(spec, timeout, error_callback, local):
     """Return a dict mapping method names to anonymous functions that
     will call the server's endpoint of the corresponding name as
     described in the api defined by the swagger dict and bravado spec"""
@@ -33,15 +33,45 @@ def generate_client_callers(spec, timeout, error_callback):
 
         log.info("Generating client for %s %s" % (endpoint.method, endpoint.path))
 
-        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback)
+        callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback, local)
 
     spec.call_on_each_endpoint(mycallback)
 
     return callers_dict
 
 
+def _generate_request_arguments(url, spec, endpoint, headers, args, kwargs):
+    # Prepare (g)requests arguments
+    data = None
+    params = None
+    custom_url = url
 
-def _generate_client_caller(spec, endpoint, timeout, error_callback):
+    if hasattr(stack.top, 'call_id'):
+        headers['KlueCallID'] = stack.top.call_id
+    if hasattr(stack.top, 'call_path'):
+        headers['KlueCallPath'] = stack.top.call_path
+
+    if endpoint.param_in_path:
+        # Fill url with values from kwargs, and remove those params from kwargs
+        custom_url = _format_flask_url(url, kwargs)
+
+    if endpoint.param_in_query:
+        # The query parameters are contained in **kwargs
+        params = kwargs
+        # TODO: validate params? or let the server do that...
+    elif endpoint.param_in_body:
+        # The body parameter is the first elem in *args
+        if len(args) != 1:
+            raise ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client)
+        data = json.dumps(spec.model_to_json(args[0]))
+
+    return custom_url, params, data, headers
+
+
+# Generate a temporary flask context used for local client calls
+myapp = flask.Flask(__name__)
+
+def _generate_client_caller(spec, endpoint, timeout, error_callback, local):
 
     url = "%s://%s:%s/%s" % (spec.protocol,
                              spec.host,
@@ -87,33 +117,11 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback):
             headers.update(kwargs['request_headers'])
             del kwargs['request_headers']
 
-        # Prepare (g)requests arguments
-        data = None
-        params = None
+        custom_url, params, data, headers = _generate_request_arguments(url, spec, endpoint, headers, args, kwargs)
 
-        custom_url = url
-
-        if hasattr(stack.top, 'call_id'):
-            headers['KlueCallID'] = stack.top.call_id
-        if hasattr(stack.top, 'call_path'):
-            headers['KlueCallPath'] = stack.top.call_path
-
-        if endpoint.param_in_path:
-            # Fill url with values from kwargs, and remove those params from kwargs
-            custom_url = _format_flask_url(url, kwargs)
-            if '<' in custom_url:
-                # Some arguments were missing
-                return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
-
-        if endpoint.param_in_query:
-            # The query parameters are contained in **kwargs
-            params = kwargs
-            # TODO: validate params? or let the server do that...
-        elif endpoint.param_in_body:
-            # The body parameter is the first elem in *args
-            if len(args) != 1:
-                return error_callback(ValidationError("%s expects exactly 1 parameter" % endpoint.handler_client))
-            data = json.dumps(spec.model_to_json(args[0]))
+        if '<' in custom_url:
+            # Some arguments were missing
+            return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
         # TODO: refactor this left-over from the time of asyn/grequests support and simplify!
         return ClientCaller(requests_method, custom_url, data, params, headers, read_timeout, connect_timeout, endpoint.operation, endpoint.method, error_callback, max_attempts).call()

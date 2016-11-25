@@ -66,10 +66,15 @@ class API():
     # The api's name
     name = None
 
-    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None):
+    # Is the endpoint callable directly as a python method from within the server?
+    # (true is the flask server also serves that api)
+    local = False
+
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None, local=False):
         """An API Specification"""
 
         self.name = name
+        self.local = local
 
         if yaml_path:
             log.info("Loading swagger file at %s" % yaml_path)
@@ -106,7 +111,7 @@ class API():
         # Auto-generate client callers
         # so we can write
         # api.call.login(param)  => call /v1/login/ on server with param as json parameter
-        callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback)
+        callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback, self.local)
         for method, caller in callers_dict.items():
             setattr(self.client, method, caller)
 

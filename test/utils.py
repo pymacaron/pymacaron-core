@@ -10,7 +10,7 @@ from klue.swagger.server import spawn_server_api
 
 class KlueTest(unittest.TestCase):
 
-    def generate_client_and_spec(self, yaml_str, callback=default_error_callback):
+    def generate_client_and_spec(self, yaml_str, callback=default_error_callback, local=False):
 
         swagger_dict = yaml.load(yaml_str)
         spec = ApiSpec(swagger_dict)
@@ -18,6 +18,7 @@ class KlueTest(unittest.TestCase):
             spec,
             10,
             callback,
+            local
         )
 
         assert len(callers_dict.keys()) == 1
