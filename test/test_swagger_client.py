@@ -47,7 +47,8 @@ class Test(utils.KlueTest):
                                              data=None,
                                              headers={'Content-Type': 'application/json'},
                                              params={'arg1': 'this', 'arg2': 'that'},
-                                             timeout=(10, 10))
+                                             timeout=(10, 10),
+                                             verify=True)
 
 
 
@@ -88,7 +89,8 @@ class Test(utils.KlueTest):
                                               data='{"arg1": "a", "arg2": "b"}',
                                               headers={'Content-Type': 'application/json'},
                                               params=None,
-                                              timeout=(10, 10))
+                                              timeout=(10, 10),
+                                              verify=True)
 
 
 # def test_client_with_auth_required():
@@ -157,7 +159,8 @@ class Test(utils.KlueTest):
             data=None,
             headers={'Content-Type': 'application/json'},
             params=None,
-            timeout=(10, 10))
+            timeout=(10, 10),
+            verify=True)
 
 
     @patch('klue.swagger.client.requests')
@@ -178,7 +181,8 @@ class Test(utils.KlueTest):
             data=None,
             headers={'Content-Type': 'application/json'},
             params=None,
-            timeout=(8, 6)
+            timeout=(8, 6),
+            verify=True
         )
 
 
@@ -211,7 +215,8 @@ class Test(utils.KlueTest):
             data=None,
             headers={'Content-Type': 'application/json'},
             params={'bar': 456},
-            timeout=(10, 10))
+            timeout=(10, 10),
+            verify=True)
 
 
 
@@ -263,7 +268,8 @@ class Test(utils.KlueTest):
             data='{"arg1": "a", "arg2": "b"}',
             headers={'Content-Type': 'application/json'},
             params=None,
-            timeout=(10, 10))
+            timeout=(10, 10),
+            verify=True)
 
 
     @responses.activate
@@ -288,7 +294,8 @@ class Test(utils.KlueTest):
             data=None,
             headers={'Content-Type': 'application/json'},
             params={'bar': '456'},
-            timeout=(10, 50))
+            timeout=(10, 50),
+            verify=True)
 
 
     @patch('klue.swagger.client.requests')
@@ -303,7 +310,8 @@ class Test(utils.KlueTest):
             data=None,
             headers={'Content-Type': 'application/json'},
             params={'bar': '456'},
-            timeout=(50, 10))
+            timeout=(50, 10),
+            verify=True)
 
 
     @responses.activate
