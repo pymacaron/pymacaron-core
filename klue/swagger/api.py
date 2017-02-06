@@ -73,7 +73,7 @@ class API():
     # (true is the flask server also serves that api)
     local = False
 
-    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None, local=False):
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None, local=False, proto=None):
         """An API Specification"""
 
         self.name = name
@@ -87,7 +87,7 @@ class API():
         else:
             raise Exception("No swagger file specified")
 
-        self.api_spec = ApiSpec(swagger_dict, formats, host, port)
+        self.api_spec = ApiSpec(swagger_dict, formats, host, port, proto)
 
         if timeout:
             self.client_timeout = timeout

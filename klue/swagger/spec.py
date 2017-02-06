@@ -45,7 +45,8 @@ class ApiSpec():
     protocol = None
     version = None
 
-    def __init__(self, swagger_dict, formats=None, host=None, port=None):
+    def __init__(self, swagger_dict, formats=None, host=None, port=None, proto=None):
+
         self.swagger_dict = swagger_dict
 
         config = {
@@ -77,8 +78,12 @@ class ApiSpec():
             self.protocol = 'http'
         else:
             raise Exception("Swagger schemes contain neither http nor https: %s" % pprint.pformat(schemes))
+
         if port:
             self.port = port
+
+        if proto:
+            self.protocol = proto
 
         self.version = swagger_dict.get('info', {}).get('version', '')
 
