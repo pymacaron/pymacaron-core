@@ -44,8 +44,9 @@ class ApiSpec():
     port = None
     protocol = None
     version = None
+    verify_ssl = True
 
-    def __init__(self, swagger_dict, formats=None, host=None, port=None, proto=None):
+    def __init__(self, swagger_dict, formats=None, host=None, port=None, proto=None, verify_ssl=True):
 
         self.swagger_dict = swagger_dict
 
@@ -84,6 +85,9 @@ class ApiSpec():
 
         if proto:
             self.protocol = proto
+
+        if not verify_ssl:
+            self.verify_ssl = False
 
         self.version = swagger_dict.get('info', {}).get('version', '')
 

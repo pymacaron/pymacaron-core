@@ -181,7 +181,7 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
             return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
         # TODO: refactor this left-over from the time of async/grequests support and simplify!
-        return ClientCaller(requests_method, custom_url, data, params, headers, read_timeout, connect_timeout, endpoint.operation, endpoint.method, error_callback, max_attempts).call()
+        return ClientCaller(requests_method, custom_url, data, params, headers, read_timeout, connect_timeout, endpoint.operation, endpoint.method, error_callback, max_attempts, spec.verify_ssl).call()
 
     return client
 
@@ -248,7 +248,7 @@ def response_to_result(response, method, url, operation, error_callback):
 
 class ClientCaller():
 
-    def __init__(self, requests_method, url, data, params, headers, read_timeout, connect_timeout, operation, method, error_callback, max_attempts):
+    def __init__(self, requests_method, url, data, params, headers, read_timeout, connect_timeout, operation, method, error_callback, max_attempts, verify_ssl):
         assert max_attempts >= 1
         self.requests_method = requests_method
         self.url = url
@@ -261,6 +261,7 @@ class ClientCaller():
         self.method = method.upper()
         self.error_callback = error_callback
         self.max_attempts = max_attempts
+        self.verify_ssl = verify_ssl
 
     def _method_is_safe_to_retry(self):
         return self.method in ('GET', 'PATCH')
@@ -277,6 +278,7 @@ class ClientCaller():
                     params=self.params,
                     headers=self.headers,
                     timeout=(self.connect_timeout, self.read_timeout),
+                    verify=self.verify_ssl,
                 )
 
                 if response is None:
