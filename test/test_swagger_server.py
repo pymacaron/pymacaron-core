@@ -109,11 +109,11 @@ class Test(utils.KlueTest):
 
         with app.test_client() as c:
             r = c.get('/v1/no/param')
-            j = json.loads(r.data)
+            j = json.loads(r.data.decode('utf-8'))
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
             self.assertDictEqual(
                 j,
-                {'token': "Method klue.test.return_token did not return a class instance but a <type 'dict'>"}
+                {'token': "Method klue.test.return_token did not return a class instance but a <class 'dict'>"}
             )
 
 # TODO: enable this test when server-side validation is enabled

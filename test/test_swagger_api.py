@@ -115,7 +115,7 @@ def test_api_models():
         'Result': api.model.Result,
         'Error': api.model.Error,
     }
-    for name, model in name_to_model.items():
+    for name, model in list(name_to_model.items()):
         i = model()
         type_name = type(i).__name__
         print("type: %s = " % name + pprint.pformat(type(api.model.Param()).__name__))

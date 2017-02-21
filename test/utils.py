@@ -22,7 +22,7 @@ class KlueTest(unittest.TestCase):
             None
         )
 
-        assert len(callers_dict.keys()) == 1
+        assert len(list(callers_dict.keys())) == 1
         assert 'do_test' in callers_dict
 
         handler = callers_dict['do_test']

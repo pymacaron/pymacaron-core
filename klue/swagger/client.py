@@ -5,7 +5,9 @@ import json
 import logging
 import time
 import flask
-import urllib
+import urllib.request
+import urllib.parse
+import urllib.error
 from requests.exceptions import ReadTimeout, ConnectTimeout
 from klue.exceptions import KlueException, ValidationError
 from klue.utils import get_function
@@ -69,7 +71,7 @@ def _generate_request_arguments(url, spec, endpoint, headers, args, kwargs):
     # Prune undefined parameters that would otherwise be turned into '=None'
     # query params
     if params:
-        for k in params.keys():
+        for k in list(params.keys()):
             if params[k] is None:
                 del params[k]
 
@@ -122,10 +124,10 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
                 return error_callback(ValidationError("Missing some arguments to format url: %s" % custom_url))
 
             if params:
-                for k, v in params.iteritems():
-                    if isinstance(v, unicode) or isinstance(v, str):
+                for k, v in params.items():
+                    if isinstance(v, str):
                         params[k] = v.encode('utf-8')
-                custom_url = custom_url + '?' + urllib.urlencode(params)
+                custom_url = custom_url + '?' + urllib.parse.urlencode(params)
             log.info("Calling with params [%s]" % params)
 
             with app.test_client() as c:
@@ -190,7 +192,7 @@ def _format_flask_url(url, params):
     # TODO: make this code more robust: error if some params are left unmatched
     # or if url still contains placeholders after replacing
     remove = []
-    for name, value in params.iteritems():
+    for name, value in params.items():
         if "<%s>" % name in url:
             url = url.replace("<%s>" % name, str(value))
             remove.append(name)

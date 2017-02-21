@@ -24,8 +24,8 @@ def foo_to_python(f):
     return Foo(f)
 
 def my_to_wire(o):
-    print("GOT: %s" % type(o))
-    print("DIR: " + pprint.pformat(dir(o)))
+    print(("GOT: %s" % type(o)))
+    print(("DIR: " + pprint.pformat(dir(o))))
     return o.foo
 
 foo_format = SwaggerFormat(

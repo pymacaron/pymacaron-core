@@ -128,8 +128,8 @@ class ApiSpec():
         if 'paths' not in self.swagger_dict:
             return
 
-        for path, d in self.swagger_dict['paths'].items():
-            for method, op_spec in d.items():
+        for path, d in list(self.swagger_dict['paths'].items()):
+            for method, op_spec in list(d.items()):
                 data = EndpointData(path, method)
 
                 # Which server method handles this endpoint?

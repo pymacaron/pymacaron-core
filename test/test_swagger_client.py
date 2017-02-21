@@ -2,7 +2,7 @@ import imp
 import os
 import pprint
 import responses
-from httplib import HTTPResponse
+from http.client import HTTPResponse
 from mock import patch, MagicMock
 from klue.swagger.client import _format_flask_url
 from klue.exceptions import KlueException, ValidationError
@@ -109,7 +109,7 @@ class Test(utils.KlueTest):
             data
         )
         self.assertEqual(u, "/v1/seller/1234/abcd/foo", u)
-        self.assertEqual(len(data.keys()), 0)
+        self.assertEqual(len(list(data.keys())), 0)
 
         data = ref.copy()
         u = _format_flask_url(
@@ -117,7 +117,7 @@ class Test(utils.KlueTest):
             data,
         )
         self.assertEqual(u, "/v1/seller/1234/abcd/foo/1234", u)
-        self.assertEqual(len(data.keys()), 0)
+        self.assertEqual(len(list(data.keys())), 0)
 
         data = ref.copy()
         u = _format_flask_url(
@@ -125,7 +125,7 @@ class Test(utils.KlueTest):
             data,
         )
         self.assertEqual(u, "/v1/seller/1234/foo", u)
-        self.assertEqual(len(data.keys()), 1)
+        self.assertEqual(len(list(data.keys())), 1)
         self.assertEqual(data['path'], 'abcd')
 
 

@@ -50,14 +50,14 @@ class ApiPool():
 
     @property
     def current_server_name(self):
-        for name, api in apis.iteritems():
+        for name, api in apis.items():
             if api.is_server:
                 return name
         return ''
 
     @property
     def current_server_api(self):
-        for name, api in apis.iteritems():
+        for name, api in apis.items():
             if api.is_server:
                 return api
         return None
@@ -82,8 +82,8 @@ class ApiPool():
 
         # First pass: find duplicate and keep only one model of each (fail if
         # duplicates have same name but different definitions)
-        for api_name, api in apis.iteritems():
-            for model_name, model_def in api.api_spec.swagger_dict['definitions'].iteritems():
+        for api_name, api in apis.items():
+            for model_name, model_def in api.api_spec.swagger_dict['definitions'].items():
                 if model_name in models:
                     other_api_name, other_model_def, _ = models.get(model_name)
                     log.info("Model %s in %s is a duplicate of one in %s" % (model_name, api_name, other_api_name))
@@ -97,7 +97,7 @@ class ApiPool():
         # Second pass: patch every models and replace with the one we decided
         # to keep
         log.info("Patching api definitions to remove all duplicates")
-        for api_name, api in apis.iteritems():
+        for api_name, api in apis.items():
             for model_name in api.api_spec.definitions.keys():
                 _, _, model_class = models.get(model_name)
                 api.api_spec.definitions[model_name] = model_class
@@ -117,7 +117,7 @@ class ApiPool():
             for k in ('x-model', 'x-persist', 'x-scope'):
                 if k in d:
                     del d[k]
-            for v in d.values():
+            for v in list(d.values()):
                 if isinstance(v, dict):
                     _cleanup(v)
 
@@ -126,5 +126,4 @@ class ApiPool():
 
         # log.debug("model1:\n" + pprint.pformat(m1))
         # log.debug("model2:\n" + pprint.pformat(m2))
-
-        return cmp(m1, m2)
+        return not m1 == m2

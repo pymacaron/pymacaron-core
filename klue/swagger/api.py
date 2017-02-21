@@ -123,7 +123,7 @@ class API():
         else:
             callers_dict = generate_client_callers(self.api_spec, self.client_timeout, self.error_callback, False, None)
 
-        for method, caller in callers_dict.items():
+        for method, caller in list(callers_dict.items()):
             setattr(self.client, method, caller)
 
 

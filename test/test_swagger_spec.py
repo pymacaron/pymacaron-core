@@ -99,7 +99,7 @@ paths:
         swagger_dict = yaml.load(yaml_str)
         spec = ApiSpec(swagger_dict)
 
-        with self.assertRaisesRegexp(Exception, "Swagger api has no 'produces' section"):
+        with self.assertRaisesRegex(Exception, "Swagger api has no 'produces' section"):
             spec.call_on_each_endpoint(self.foo)
 
 
@@ -126,7 +126,7 @@ paths:
         swagger_dict = yaml.load(yaml_str)
         spec = ApiSpec(swagger_dict)
 
-        with self.assertRaisesRegexp(Exception, "Only 'application/json' or 'text/html' are supported."):
+        with self.assertRaisesRegex(Exception, "Only 'application/json' or 'text/html' are supported."):
             spec.call_on_each_endpoint(self.foo)
 
 
@@ -154,7 +154,7 @@ paths:
         swagger_dict = yaml.load(yaml_str)
         spec = ApiSpec(swagger_dict)
 
-        with self.assertRaisesRegexp(Exception, "Expecting only one type"):
+        with self.assertRaisesRegex(Exception, "Expecting only one type"):
             spec.call_on_each_endpoint(self.foo)
 
 

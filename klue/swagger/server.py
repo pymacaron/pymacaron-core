@@ -112,7 +112,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         if endpoint.param_in_body:
             # Remove the parameters already defined in path_params
-            for k in path_params.keys():
+            for k in list(path_params.keys()):
                 del parameters[k]
             l = list(parameters.values())
             assert len(l) == 1
