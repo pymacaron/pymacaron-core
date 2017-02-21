@@ -207,8 +207,9 @@ def response_to_result(response, method, url, operation, error_callback):
 
     # Monkey patching flask test_client response if necessary
     if not hasattr(response, 'text'):
-        setattr(response, 'text', str(response.data))
-        j = json.loads(str(response.data))
+        data = response.data.decode("utf-8")
+        setattr(response, 'text', data)
+        j = json.loads(data)
 
         def get_json():
             return j
