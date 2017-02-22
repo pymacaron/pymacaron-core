@@ -156,7 +156,7 @@ class API():
 
         def new_creator(*args, **kwargs):
             r = model(*args, **kwargs)
-            r.save_to_db = types.MethodType(method, r)
+            setattr(r, 'save_to_db', types.MethodType(method, r))
             return r
 
         return new_creator
