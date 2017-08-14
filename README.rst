@@ -1,21 +1,38 @@
 Klue Client-Server
 ==================
 
-Dynamically generate client libraries and Flask servers based on Swagger
-specifications of REST apis.
+A python framework that takes a Swagger/OpenAPI specification of a json REST
+api and spawns a Flask server and a client library implementing it.
 
-Purpose
--------
+Purpose: easy micro-services
+----------------------------
 
-A typical micro-service will expose a REST API on its server side, while making
-client calls to a number of other services nearby.
+A typical Python micro-service will expose a REST api where each api endpoint
+is implemented by a Python method. This method will in turn call other
+micro-services and process their reply.
 
-Given a set of Swagger specifications describing the APIs of these services,
-Klue Client-Server will populate a Flask app with auto-generated server
-endpoints for all specified routes, as well as generate client libraries for
-every client API. Both client and server stubs handle marshaling/unmarshaling
-of json documents to and from objects modeled upon the Swagger definitions for
-each API, as well as provide format verifications of these objects.
+Klue Client-Server aims at greatly simplifying the scaffholding needed to
+code and run a micro-service in Python:
+
+  1. Write a set of Swagger specifications describing each api, and defining
+     the data formats received and returned by each endpoint. Each
+     specification should have extra markup binding api endpoints to method
+     names used to call, respectively implement, the endpoint.
+
+  2. Implement Python methods for each of the micro-service's endpoints, as
+     described in the service's swagger specification.
+
+  3. Klue Client-Server generates client libraries for all apis, allowing to
+     call api endpoints as normal Python methods. Call results are
+     automatically unmarshalled from json into Python objects. The methods
+     implementing our micro-service's api can now easily call other apis.
+
+  4. Tell Klue Client-Server which api to serve: it then populates a Flask app
+     with each api route bound to its corresponding Python method. Incoming
+     json objects are transparently validated and unmarshalled into Python
+     objects, passed to the method, and the method's result marshalled back
+     into json.
+
 
 Klue Client-Server relies on bravado-core for marshaling/unmarshaling and
 format validation.
@@ -23,8 +40,9 @@ format validation.
 Disclaimer
 ----------
 
-Klue Client-Server is under active development. Its API is subject to
-change. It has been tested only on python 2.7.
+Klue Client-Server is actively used in production, but still under active
+development. Its API is subject to change. It has been tested on python 2.7 and
+3.4.
 
 Asynchronous support based on grequests was dropped after version 0.0.92
 
@@ -50,6 +68,8 @@ have auto-generated into the Flask app should have the 'x-bind-server'
 attribute set to the path of a python method that will take as argument an
 object modelled on the endpoint's argument, and return an object matching that
 of the endpoint's reponses (See bravado-core for details):
+
+Let's implement a login endpoint as an example:
 
 .. code-block:: yaml
 
@@ -81,15 +101,15 @@ Populate a Flask app with server endpoints for the 'login' api:
 
 .. code-block:: python
 
+    from flask import Flask
+    from klue.swagger import ApiPool
+
     app = Flask(__name__)
+    ApiPool.add('login', yaml_path='login.yaml')
     ApiPool.login.spawn_api(app)
 
-    # Optionaly: wrap all server endpoints with a decorator
-    def analytics_wrapper(f):
-        ...
-    ApiPool.login.spawn_api(app, decorator=analytics_wrapper)
-
-Implement the 'do_login' endpoint:
+To implement the 'do_login' endpoint, the file 'myserver/handlers' should
+contain:
 
 .. code-block:: python
 
@@ -109,6 +129,28 @@ Implement the 'do_login' endpoint:
             r = jsonify({'error': 'INVALID_CREDENTIALS'})
             r.status_code = 401
             return r
+
+
+Decorating server methods:
+==========================
+
+You can tell Klue Client-Server to apply a decorator to all server methods,
+which comes in handy for gathering analytics or crash data. To do that in the
+example above, modify the server code to be like:
+
+.. code-block:: python
+
+    from flask import Flask
+    from klue.swagger import ApiPool
+
+    app = Flask(__name__)
+    ApiPool.add('login', yaml_path='login.yaml')
+
+    # Optionaly: wrap all server endpoints with a decorator
+    def analytics_wrapper(f):
+        ...
+
+    ApiPool.login.spawn_api(app, decorator=analytics_wrapper)
 
 
 Generating Client
@@ -233,7 +275,7 @@ invalid request according to the swagger specification.
 However klue-client-server does not know how to format internal errors into an
 object model fitting that of the loaded swagger specification. Instead, you
 should provide the apipool with a callback to format exceptions into whatever
-object you wish to return instead. Something like:
+object you wish your api to return. Something like:
 
 .. code-block:: python
 
