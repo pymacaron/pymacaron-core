@@ -45,39 +45,29 @@ class API():
     usage: See apipool.py
     """
 
-    # The API's swagger representation
-    api_spec = None
-
-    # Object holding the client side code to call the API
-    client = APIClient()
-
-    # Object holding constructors for the API's objects
-    model = APIModels()
-
-    # Default timeout when calling server endpoint, in sec
-    client_timeout = 10
-
-    # Callback to handle exceptions
-    error_callback = default_error_callback
-
-    # Flag: true if this api has spawned_api
-    is_server = False
-
-    # The api's name
-    name = None
-
-    # The flask app
-    app = None
-
-    # Is the endpoint callable directly as a python method from within the server?
-    # (true is the flask server also serves that api)
-    local = False
-
-    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=None, error_callback=None, formats=None, do_persist=True, host=None, port=None, local=False, proto=None, verify_ssl=True):
+    def __init__(self, name, yaml_str=None, yaml_path=None, timeout=10, error_callback=None, formats=None, do_persist=True, host=None, port=None, local=False, proto=None, verify_ssl=True):
         """An API Specification"""
 
         self.name = name
+
+        # Is the endpoint callable directly as a python method from within the server?
+        # (true is the flask server also serves that api)
         self.local = local
+
+        # Callback to handle exceptions
+        self.error_callback = default_error_callback
+
+        # Flag: true if this api has spawned_api
+        self.is_server = False
+        self.app = None
+
+        # Object holding the client side code to call the API
+        self.client = APIClient()
+
+        # Object holding constructors for the API's objects
+        self.model = APIModels()
+
+        self.client_timeout = timeout
 
         if yaml_path:
             log.info("Loading swagger file at %s" % yaml_path)
@@ -88,9 +78,6 @@ class API():
             raise Exception("No swagger file specified")
 
         self.api_spec = ApiSpec(swagger_dict, formats, host, port, proto, verify_ssl)
-
-        if timeout:
-            self.client_timeout = timeout
 
         if error_callback:
             self.error_callback = error_callback
