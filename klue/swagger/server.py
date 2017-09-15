@@ -150,6 +150,13 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             if result_type == 'flask.wrappers.Response':
                 return result
 
+            # We may have got a klue-microservice Error instance, in which case
+            # it has a http_reply() method...
+            if hasattr(result, 'http_reply'):
+                # Let's transform this Error into a flask Response
+                log.info("Looks like a klue-microservice error instance - calling .http_reply()")
+                return result.http_reply()
+
             # Otherwise, assume no error occured and make a flask Response out of
             # the result.
 
