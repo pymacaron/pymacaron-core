@@ -92,14 +92,31 @@ class ApiSpec():
         self.version = swagger_dict.get('info', {}).get('version', '')
 
 
-    def model_to_json(self, object):
+    def model_to_json(self, object, cleanup=True):
         """Take a model instance and return it as a json struct"""
         model_name = type(object).__name__
         if model_name not in self.swagger_dict['definitions']:
             raise ValidationError("Swagger spec has no definition for model %s" % model_name)
         model_def = self.swagger_dict['definitions'][model_name]
         log.debug("Marshalling %s into json" % model_name)
-        return marshal_model(self.spec, model_def, object)
+        m = marshal_model(self.spec, model_def, object)
+        if cleanup:
+            self.cleanup_model(m)
+        return m
+
+
+    def cleanup_model(self, m):
+        # Recent versions of bravado-core leave the monkey-patched save_to_db
+        # method in the json object - Let's remove them
+        if isinstance(m, dict):
+            for k, v in list(m.items()):
+                if k == 'save_to_db':
+                    del m['save_to_db']
+                elif isinstance(v, dict):
+                    self.cleanup_model(v)
+                elif isinstance(v, list):
+                    for i in v:
+                        self.cleanup_model(i)
 
 
     def json_to_model(self, model_name, j):
