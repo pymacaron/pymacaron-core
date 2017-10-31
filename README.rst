@@ -4,6 +4,12 @@ Klue Client-Server
 A python framework that takes a Swagger/OpenAPI specification of a json REST
 api and spawns a Flask server and a client library implementing it.
 
+'klue-client-server' is an underlying layer for the
+[klue-microservice](https://github.com/erwan-lemonnier/klue-microservice)
+framework. If your intent is to code REST apis based on Flask and Swagger,
+[klue-microservice](https://github.com/erwan-lemonnier/klue-microservice)
+offers a lot of extra goodies compared to 'klue-client-server'.
+
 Purpose: easy micro-services
 ----------------------------
 
