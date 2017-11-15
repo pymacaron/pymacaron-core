@@ -132,18 +132,19 @@ class API():
 
         # Replace model generator with one that adds 'save_to_db' to every instance
         model = getattr(self.model, model_name)
-        n = self._wrap_bravado_model_generator(model, c.save_to_db)
+        n = self._wrap_bravado_model_generator(model, c.save_to_db, pkg_name)
         setattr(self.model, model_name, n)
 
         # Add class method load_from_db to model generator
         model = getattr(self.model, model_name)
         setattr(model, 'load_from_db', c.load_from_db)
 
-    def _wrap_bravado_model_generator(self, model, method):
+    def _wrap_bravado_model_generator(self, model, method, pkg_name):
 
         def new_creator(*args, **kwargs):
             r = model(*args, **kwargs)
             setattr(r, 'save_to_db', types.MethodType(method, r))
+            setattr(r, '__persistence_class__', pkg_name)
             return r
 
         return new_creator
