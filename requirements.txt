@@ -5,7 +5,7 @@ flask-cors
 requests
 pep8
 six
-bravado-core==4.9.1
+bravado-core==4.11.0
 responses
 pyyaml
 gevent
