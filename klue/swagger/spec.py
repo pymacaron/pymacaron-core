@@ -110,7 +110,7 @@ class ApiSpec():
         # method in the json object - Let's remove them
         if isinstance(m, dict):
             for k, v in list(m.items()):
-                if k in ('save_to_db', '__persistence_class__'):
+                if k in ('__persistence_class__', ) or callable(v):
                     del m[k]
                 elif isinstance(v, dict):
                     self.cleanup_model(v)
