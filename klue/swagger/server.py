@@ -68,8 +68,12 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
     @wraps(handler_func)
     def handler_wrapper(**path_params):
+        log.info(" ")
+        log.info(" ")
         log.info("=> INCOMING REQUEST %s %s -> %s" %
                  (endpoint.method, endpoint.path, handler_func.__name__))
+        log.info(" ")
+        log.info(" ")
 
         # Get caller's klue-call-id or generate one
         call_id = request.headers.get('KlueCallID', None)
