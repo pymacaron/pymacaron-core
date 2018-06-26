@@ -1,6 +1,6 @@
 import pprint
 import logging
-from klue.exceptions import ValidationError
+from pymacaron_core.exceptions import ValidationError
 from bravado_core.spec import Spec
 from bravado_core.operation import Operation
 from bravado_core.marshal import marshal_model

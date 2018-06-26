@@ -4,14 +4,13 @@ import jsonschema
 import json
 import logging
 import time
-import flask
 import urllib.request
 import urllib.parse
 import urllib.error
 from requests.exceptions import ReadTimeout, ConnectTimeout
-from klue.exceptions import KlueException, ValidationError
-from klue.utils import get_function
-from bravado_core.response import unmarshal_response, OutgoingResponse
+from pymacaron_core.exceptions import PyMacaronException, ValidationError
+from pymacaron_core.utils import get_function
+from bravado_core.response import unmarshal_response
 
 
 log = logging.getLogger(__name__)
@@ -50,9 +49,9 @@ def _generate_request_arguments(url, spec, endpoint, headers, args, kwargs):
     custom_url = url
 
     if hasattr(stack.top, 'call_id'):
-        headers['KlueCallID'] = stack.top.call_id
+        headers['PymCallID'] = stack.top.call_id
     if hasattr(stack.top, 'call_path'):
-        headers['KlueCallPath'] = stack.top.call_path
+        headers['PymCallPath'] = stack.top.call_path
 
     if endpoint.param_in_path:
         # Fill url with values from kwargs, and remove those params from kwargs
@@ -101,8 +100,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
 
     method = endpoint.method.lower()
     if method not in ('get', 'post', 'patch', 'put', 'delete'):
-        raise KlueException("BUG: method %s for %s is not supported. Only get and post are." %
-                            (endpoint.method, endpoint.path))
+        raise PyMacaronException("BUG: method %s for %s is not supported. Only get and post are." %
+                                 (endpoint.method, endpoint.path))
 
     # Are we doing a local call?
     if local:
@@ -216,17 +215,17 @@ def response_to_result(response, method, url, operation, error_callback):
 
         setattr(response, 'json', get_json)
 
-    # If the remote-server returned an error, raise it as a local KlueException
+    # If the remote-server returned an error, raise it as a local PyMacaronException
     if str(response.status_code) != '200':
         log.warn("Call to %s %s returns error: %s" % (method, url, response.text))
         if 'error_description' in response.text:
-            # We got a KlueException: unmarshal it and return as valid return value
+            # We got a PyMacaronException: unmarshal it and return as valid return value
             # UGLY FRAGILE CODE. To be replaced by proper exception scheme
             pass
         else:
             # Unknown exception...
             log.info("Unknown exception: " + response.text)
-            k = KlueException("Call to %s %s returned unknown exception: %s" % (method, url, response.text))
+            k = PyMacaronException("Call to %s %s returned unknown exception: %s" % (method, url, response.text))
             k.status_code = response.status_code
             c = error_callback
             if hasattr(c, '__func__'):
@@ -292,7 +291,7 @@ class ClientCaller():
                         time.sleep(delay)
                         continue
                     else:
-                        raise KlueException("Call %s %s returned empty response" % (self.method, self.url))
+                        raise PyMacaronException("Call %s %s returned empty response" % (self.method, self.url))
 
                 return response
 

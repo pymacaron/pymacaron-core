@@ -5,7 +5,7 @@ from bravado_core.formatter import SwaggerFormat
 from bravado_core.exception import SwaggerValidationError
 from bravado_core.unmarshal import unmarshal_model
 from bravado_core.validate import validate_object
-from klue.swagger.api import API
+from pymacaron_core.swagger.api import API
 
 formats = []
 
@@ -27,6 +27,7 @@ def my_to_wire(o):
     print(("GOT: %s" % type(o)))
     print(("DIR: " + pprint.pformat(dir(o))))
     return o.foo
+
 
 foo_format = SwaggerFormat(
     format='foo',

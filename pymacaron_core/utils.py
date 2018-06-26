@@ -1,6 +1,6 @@
 import traceback
 from importlib import import_module
-from klue.exceptions import KlueException
+from pymacaron_core.exceptions import PyMacaronException
 
 def get_function(pkgpath):
     """Take a full path to a python method or class, for example
@@ -10,7 +10,7 @@ def get_function(pkgpath):
     # Extract the module and function name from pkgpath
     elems = pkgpath.split('.')
     if len(elems) <= 1:
-        raise KlueException("Path %s is too short. Should be at least module.func." % elems)
+        raise PyMacaronException("Path %s is too short. Should be at least module.func." % elems)
     func_name = elems[-1]
     func_module = '.'.join(elems[0:-1])
 
@@ -21,4 +21,4 @@ def get_function(pkgpath):
         return f
     except Exception as e:
         t = traceback.format_exc()
-        raise KlueException("Failed to import %s: %s\nTrace:\n%s" % (pkgpath, str(e), t))
+        raise PyMacaronException("Failed to import %s: %s\nTrace:\n%s" % (pkgpath, str(e), t))

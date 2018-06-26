@@ -23,7 +23,7 @@ def check(files):
 
     # E501: Line too long
     # E303: Too many blank lines
-    args = ["pep8", "--ignore", "E501,E303,E302"] + list(files)
+    args = ["pycodestyle", "--ignore", "E501,E303,E302"] + list(files)
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (out, err) = p.communicate()
     if len(out) != 0:

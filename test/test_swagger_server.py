@@ -1,20 +1,17 @@
 import imp
 import os
 import pprint
-import yaml
 import json
 
 from flask import jsonify
-from klue.swagger.api import default_error_callback
-from klue.swagger.apipool import ApiPool
-from klue.exceptions import KlueException
+from pymacaron_core.exceptions import PyMacaronException
 from mock import patch
 
 
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
 
 
-class Test(utils.KlueTest):
+class Test(utils.PymTest):
 
 
     def setUp(self):
@@ -32,7 +29,7 @@ class Test(utils.KlueTest):
         self.assertTrue(content in r.status, "[%s] in [%s]" % (content, r.status))
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_no_param(self, func):
         func.__name__ = 'return_token'
 
@@ -47,7 +44,7 @@ class Test(utils.KlueTest):
             func.assert_called_once_with()
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_no_result(self, func):
         func.__name__ = 'return_token'
         func.return_value = None
@@ -59,7 +56,7 @@ class Test(utils.KlueTest):
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_pass_through_responses(self, func):
         func.__name__ = 'return_token'
 
@@ -79,7 +76,7 @@ class Test(utils.KlueTest):
                 self.assertEqual(j['foo'], 'bar')
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_invalid_server_return_value(self, func):
         func.__name__ = 'return_token'
         func.return_value = {'a': 1}
@@ -91,7 +88,7 @@ class Test(utils.KlueTest):
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_invalid_server_return_value_custom_callback(self, func):
         func.__name__ = 'return_token'
         func.return_value = {'a': 1}
@@ -113,7 +110,7 @@ class Test(utils.KlueTest):
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
             self.assertDictEqual(
                 j,
-                {'token': "Method klue.test.return_token did not return a class instance but a <class 'dict'>"}
+                {'token': "Method pymacaron_core.test.return_token did not return a class instance but a <class 'dict'>"}
             )
 
 # TODO: enable this test when server-side validation is enabled
@@ -132,7 +129,7 @@ class Test(utils.KlueTest):
 
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_param_in_body(self, func):
         func.__name__ = 'return_token'
 
@@ -151,7 +148,7 @@ class Test(utils.KlueTest):
             func.assert_called_once_with(Credentials(email='a@a.a', int='123123'))
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_param_in_query(self, func):
         func.__name__ = 'return_token'
 
@@ -166,7 +163,7 @@ class Test(utils.KlueTest):
             func.assert_called_once_with(bar='bbbb', foo='aaaa')
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_param_in_query__missing_required_param(self, func):
         func.__name__ = 'return_token'
         app, spec = self.generate_server_app(self.yaml_in_query)
@@ -184,7 +181,7 @@ class Test(utils.KlueTest):
         pass
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_unmarshal_request_error__missing_required_argument(self, func):
         func.__name__ = 'return_token'
 
@@ -200,7 +197,7 @@ class Test(utils.KlueTest):
             func.assert_not_called()
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_unmarshal_request_error__wrong_argument_format(self, func):
         func.__name__ = 'return_token'
 
@@ -229,7 +226,7 @@ class Test(utils.KlueTest):
 
 
 
-    @patch('klue.test.return_token')
+    @patch('pymacaron_core.test.return_token')
     def test_swagger_server_param_in_path(self, func):
         func.__name__ = 'return_token'
 
@@ -244,7 +241,7 @@ class Test(utils.KlueTest):
             func.assert_called_once_with(item='1234', path='bob234')
 
 
-# @patch('klue.test.return_token')
+# @patch('pymacaron_core.test.return_token')
 # def test_swagger_server_param_in_path__missing_required_param(self, func):
 #     app, spec = self.generate_server_app(self.yaml_in_query)
 

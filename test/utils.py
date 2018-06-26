@@ -1,14 +1,13 @@
-import pprint
 import unittest
 import yaml
-from flask import Flask, request
-from klue.swagger.spec import ApiSpec
-from klue.swagger.api import default_error_callback
-from klue.swagger.client import generate_client_callers
-from klue.swagger.server import spawn_server_api
+from flask import Flask
+from pymacaron_core.swagger.spec import ApiSpec
+from pymacaron_core.swagger.api import default_error_callback
+from pymacaron_core.swagger.client import generate_client_callers
+from pymacaron_core.swagger.server import spawn_server_api
 
 
-class KlueTest(unittest.TestCase):
+class PymTest(unittest.TestCase):
 
     def generate_client_and_spec(self, yaml_str, callback=default_error_callback, local=False):
 
@@ -368,7 +367,7 @@ paths:
       description: blabla
       produces:
         - application/json
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       x-auth-required: false
       responses:
         200:
@@ -392,7 +391,7 @@ paths:
             $ref: '#/definitions/Credentials'
       produces:
         - application/json
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       x-auth-required: false
       responses:
         200:
@@ -420,7 +419,7 @@ paths:
           type: string
       produces:
         - application/json
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       x-auth-required: false
       responses:
         200:
@@ -448,7 +447,7 @@ paths:
           type: string
       produces:
         - application/json
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       x-auth-required: false
       responses:
         200:

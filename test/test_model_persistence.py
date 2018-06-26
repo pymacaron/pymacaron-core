@@ -1,7 +1,6 @@
-import pprint
 import unittest
-from mock import MagicMock, patch
-from klue.swagger.api import API
+from mock import patch
+from pymacaron_core.swagger.api import API
 
 
 #
@@ -21,7 +20,7 @@ definitions:
   Foo:
     type: object
     description: a foo
-    x-persist: klue.test.PersistentFoo
+    x-persist: pymacaron_core.test.PersistentFoo
     properties:
       foo:
         type: string
@@ -46,7 +45,7 @@ class Tests(unittest.TestCase):
         self.assertTrue(hasattr(f, 'save_to_db'))
 
 
-    @patch("klue.test.PersistentFoo.load_from_db")
+    @patch("pymacaron_core.test.PersistentFoo.load_from_db")
     def test_load_from_db(self, m):
         m.return_value = 'foobar'
 
@@ -57,7 +56,7 @@ class Tests(unittest.TestCase):
         m.assert_called_once_with(1, 2, a=1, b=2)
         self.assertEqual(f, 'foobar')
 
-    @patch("klue.test.PersistentFoo.load_from_db")
+    @patch("pymacaron_core.test.PersistentFoo.load_from_db")
     def test_load_from_db__return_tupple(self, m):
         m.return_value = ('foobar', 'barbaz')
 
@@ -69,7 +68,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(a, 'foobar')
         self.assertEqual(b, 'barbaz')
 
-    @patch("klue.test.PersistentFoo.save_to_db")
+    @patch("pymacaron_core.test.PersistentFoo.save_to_db")
     def test_save_to_db(self, m):
         api = API('somename', yaml_str=yaml_str)
 

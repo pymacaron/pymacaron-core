@@ -1,13 +1,11 @@
-import pprint
 import types
 import yaml
 import logging
-from bravado_core.spec import Spec
-from klue.swagger.server import spawn_server_api
-from klue.swagger.client import generate_client_callers
-from klue.swagger.spec import ApiSpec
-from klue.exceptions import KlueException
-from klue.utils import get_function
+from pymacaron_core.swagger.server import spawn_server_api
+from pymacaron_core.swagger.client import generate_client_callers
+from pymacaron_core.swagger.spec import ApiSpec
+from pymacaron_core.exceptions import PyMacaronException
+from pymacaron_core.utils import get_function
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +83,7 @@ class API():
         # Auto-generate class methods for every object model defined
         # in the swagger spec, calling that model's constructor
         # Ex:
-        #     klue_api.Version(version='1.2.3')   => return a Version object
+        #     my_api.Version(version='1.2.3')   => return a Version object
         for model_name in self.api_spec.definitions:
             model_generator = generate_model_instantiator(model_name, self.api_spec.definitions)
 
@@ -114,19 +112,20 @@ class API():
             setattr(self.client, method, caller)
 
 
-    #
-    # WARNING: ugly piece of monkey-patching below. Hopefully will replace
-    # with native bravado-core code in the future...
-    #
     def _make_persistent(self, model_name, pkg_name):
         """Monkey-patch object persistence (ex: to/from database) into a
         bravado-core model class"""
+
+        #
+        # WARNING: ugly piece of monkey-patching below. Hopefully will replace
+        # with native bravado-core code in the future...
+        #
 
         # Load class at path pkg_name
         c = get_function(pkg_name)
         for name in ('load_from_db', 'save_to_db'):
             if not hasattr(c, name):
-                raise KlueException("Class %s has no static method '%s'" % (pkg_name, name))
+                raise PyMacaronException("Class %s has no static method '%s'" % (pkg_name, name))
 
         log.info("Making %s persistent via %s" % (model_name, pkg_name))
 

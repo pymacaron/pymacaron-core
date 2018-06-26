@@ -1,17 +1,17 @@
 import imp
 import os
 import pprint
+import json
 import responses
-from http.client import HTTPResponse
 from mock import patch, MagicMock
-from klue.swagger.client import _format_flask_url
-from klue.exceptions import KlueException, ValidationError
+from pymacaron_core.swagger.client import _format_flask_url
+from pymacaron_core.exceptions import PyMacaronException, ValidationError
 
 
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
 
 
-class Test(utils.KlueTest):
+class Test(utils.PymTest):
 
 
     def setUp(self):
@@ -22,9 +22,12 @@ class Test(utils.KlueTest):
     def test_client_with_query_param(self):
         handler, _ = self.generate_client_and_spec(self.yaml_query_param)
 
-        responses.add(responses.GET, "http://some.server.com:80/v1/some/path",
-                      body='{"foo": "a", "bar": "b"}', status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET, "http://some.server.com:80/v1/some/path",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         res = handler(arg1='this', arg2='that')
 
@@ -34,31 +37,36 @@ class Test(utils.KlueTest):
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_query_param(self, requests):
         requests.get = MagicMock()
         handler, _ = self.generate_client_and_spec(self.yaml_query_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(arg1='this', arg2='that')
         # self.assertEqual("Expected 1 caller, got 0", str(e.exception))
 
-        requests.get.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                             data=None,
-                                             headers={'Content-Type': 'application/json'},
-                                             params={'arg1': 'this', 'arg2': 'that'},
-                                             timeout=(10, 10),
-                                             verify=True)
-
+        requests.get.assert_called_once_with(
+            'http://some.server.com:80/v1/some/path',
+            data=None,
+            headers={'Content-Type': 'application/json'},
+            params={'arg1': 'this', 'arg2': 'that'},
+            timeout=(10, 10),
+            verify=True
+        )
 
 
     @responses.activate
     def test_client_with_body_param(self):
         handler, spec = self.generate_client_and_spec(self.yaml_body_param)
 
-        responses.add(responses.POST, "http://some.server.com:80/v1/some/path",
-                      body='{"foo": "a", "bar": "b"}', status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.POST,
+            "http://some.server.com:80/v1/some/path",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         # Only 1 parameter expected
         with self.assertRaises(ValidationError) as e:
@@ -76,21 +84,23 @@ class Test(utils.KlueTest):
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_body_param(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_body_param)
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(param)
 
-        requests.post.assert_called_once_with('http://some.server.com:80/v1/some/path',
-                                              data='{"arg1": "a", "arg2": "b"}',
-                                              headers={'Content-Type': 'application/json'},
-                                              params=None,
-                                              timeout=(10, 10),
-                                              verify=True)
+        requests.post.assert_called_once_with(
+            'http://some.server.com:80/v1/some/path',
+            data=json.dumps({"arg1": "a", "arg2": "b"}),
+            headers={'Content-Type': 'application/json'},
+            params=None,
+            timeout=(10, 10),
+            verify=True
+        )
 
 
 # def test_client_with_auth_required():
@@ -134,11 +144,13 @@ class Test(utils.KlueTest):
     def test_client_with_path_param(self):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        responses.add(responses.GET,
-                      "http://some.server.com:80/v1/some/123/path/456",
-                      body='{"foo": "a", "bar": "b"}',
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET,
+            "http://some.server.com:80/v1/some/123/path/456",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         # Make a valid call
         res = handler(foo=123, bar=456)
@@ -147,11 +159,11 @@ class Test(utils.KlueTest):
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_path_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -163,11 +175,11 @@ class Test(utils.KlueTest):
             verify=True)
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_handler_extra_parameters(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(
                 foo=123,
                 bar=456,
@@ -190,11 +202,13 @@ class Test(utils.KlueTest):
     def test_client_with_path_query_param(self):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        responses.add(responses.GET,
-                      "http://some.server.com:80/v1/some/123/path",
-                      body='{"foo": "a", "bar": "b"}',
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET,
+            "http://some.server.com:80/v1/some/123/path",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         # Make a valid call
         res = handler(foo=123, bar=456)
@@ -203,11 +217,11 @@ class Test(utils.KlueTest):
         self.assertEqual(res.bar, 'b')
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_path_query_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -224,11 +238,13 @@ class Test(utils.KlueTest):
     def test_client_with_path_body_param(self):
         handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
 
-        responses.add(responses.GET,
-                      "http://some.server.com:80/v1/some/123/path",
-                      body='{"foo": "a", "bar": "b"}',
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET,
+            "http://some.server.com:80/v1/some/123/path",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         # Send a valid parameter object
         model_class = spec.definitions['Param']
@@ -253,23 +269,24 @@ class Test(utils.KlueTest):
         self.assertTrue('Missing some arguments' in str(e.exception))
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_path_body_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
 
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(param, foo=123)
 
         requests.get.assert_called_once_with(
             'http://some.server.com:80/v1/some/123/path',
-            data='{"arg1": "a", "arg2": "b"}',
+            data=json.dumps({"arg1": "a", "arg2": "b"}),
             headers={'Content-Type': 'application/json'},
             params=None,
             timeout=(10, 10),
-            verify=True)
+            verify=True
+        )
 
 
     @responses.activate
@@ -277,16 +294,16 @@ class Test(utils.KlueTest):
         y = self.yaml_query_param
         y = y.replace('get:', 'foobar:')
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler, spec = self.generate_client_and_spec(y)
         self.assertTrue('BUG: method FOOBAR for /v1/some/path is not supported' in str(e.exception))
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_client_override_read_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(read_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(
@@ -298,11 +315,11 @@ class Test(utils.KlueTest):
             verify=True)
 
 
-    @patch('klue.swagger.client.requests')
+    @patch('pymacaron_core.swagger.client.requests')
     def test_requests_client_override_connect_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(KlueException) as e:
+        with self.assertRaises(PyMacaronException) as e:
             handler(connect_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(
@@ -325,11 +342,13 @@ class Test(utils.KlueTest):
             callback=callback,
         )
 
-        responses.add(responses.GET,
-                      "http://some.server.com:80/v1/some/123/path",
-                      body='{"foo": "a", "bar": "b"}',
-                      status=200,
-                      content_type="application/json")
+        responses.add(
+            responses.GET,
+            "http://some.server.com:80/v1/some/123/path",
+            body=json.dumps({"foo": "a", "bar": "b"}),
+            status=200,
+            content_type="application/json"
+        )
 
         # Send a valid parameter object
         model_class = spec.definitions['Param']

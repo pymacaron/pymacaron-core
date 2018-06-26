@@ -1,6 +1,6 @@
 from mock import MagicMock
-from klue.swagger.apipool import ApiPool
-from klue.swagger.api import API
+from pymacaron_core.swagger.apipool import ApiPool
+from pymacaron_core.swagger.api import API
 
 
 yaml_foo = """
@@ -24,7 +24,7 @@ paths:
           name: arg1
           description: foooo
           required: true
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       produces:
         - application/json
       responses:
@@ -54,7 +54,7 @@ paths:
           name: arg1
           description: foooo
           required: true
-      x-bind-server: klue.test.return_token
+      x-bind-server: pymacaron_core.test.return_token
       produces:
         - application/json
       responses:

@@ -1,10 +1,10 @@
 import pprint
-import yaml
-from klue.swagger.api import API
-from mock import MagicMock
+from pymacaron_core.swagger.api import API
+
 
 class Handlers():
     pass
+
 
 yaml_str = """
 swagger: '2.0'

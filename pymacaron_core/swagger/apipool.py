@@ -1,9 +1,8 @@
 import pprint
 import logging
 import copy
-from klue.swagger.api import API
-from klue.exceptions import MergeApisException
-from bravado_core.spec import Spec
+from pymacaron_core.swagger.api import API
+from pymacaron_core.exceptions import MergeApisException
 
 
 log = logging.getLogger(__name__)
@@ -18,12 +17,12 @@ class ApiPool():
     USAGE:
 
     To load an API:
-      api = ApiPool.add('klue', 'klue-api.yaml')
+      api = ApiPool.add('myapi', 'my-api.yaml')
 
     This will generate model classes for all definitions in the YAML spec.
 
     To get this api from the pool, as an API object (see swagger.api):
-      api = ApiPool.klue
+      api = ApiPool.myapi
 
     To instantiate one of the model object:
       api.model.Credentials(user='foo', password='bar')
@@ -67,8 +66,8 @@ class ApiPool():
         """Try merging all the bravado_core models across all loaded APIs. If
         duplicates occur, use the same bravado-core model to represent each, so
         bravado-core won't treat them as different models when passing them
-        from one Klue client stub to an other or when returning them via the
-        Klue server stub.
+        from one PyMacaron client stub to an other or when returning them via the
+        PyMacaron server stub.
         """
 
         # The sole purpose of this method is to trick isinstance to return true

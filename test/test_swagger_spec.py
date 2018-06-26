@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import datetime, date, timezone
 import pprint
 import yaml
 import unittest
-from klue.swagger.spec import ApiSpec
+from pymacaron_core.swagger.spec import ApiSpec
 
 
 class Tests(unittest.TestCase):
@@ -432,8 +432,8 @@ definitions:
 """
 
 
-    # Test model_to_json on a deep structure, with object in object
     def test_model_to_json(self):
+        # Test model_to_json on a deep structure, with object in object
         swagger_dict = yaml.load(Tests.yaml_complex_model)
         spec = ApiSpec(swagger_dict)
 
@@ -444,7 +444,7 @@ definitions:
             token='abcd',
             bar=Bar(
                 a=1,
-                b=date.today()
+                b=datetime(2016, 8, 26, tzinfo=timezone.utc)
             )
         )
 
@@ -455,7 +455,7 @@ definitions:
             'token': 'abcd',
             'bar': {
                 'a': 1,
-                'b': date.today().isoformat()
+                'b': datetime(2016, 8, 26, tzinfo=timezone.utc).isoformat()
             }
         })
 

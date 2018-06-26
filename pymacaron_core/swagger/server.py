@@ -1,4 +1,3 @@
-import pprint
 import jsonschema
 import logging
 import uuid
@@ -6,10 +5,8 @@ from functools import wraps
 from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
 from flask_cors import cross_origin
-from klue.exceptions import KlueException, ValidationError, add_error_handlers
-from klue.utils import get_function
-from bravado_core.operation import Operation
-from bravado_core.param import unmarshal_param
+from pymacaron_core.exceptions import PyMacaronException, ValidationError, add_error_handlers
+from pymacaron_core.utils import get_function
 from bravado_core.request import IncomingRequest, unmarshal_request
 
 
@@ -75,14 +72,14 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         log.info(" ")
         log.info(" ")
 
-        # Get caller's klue-call-id or generate one
-        call_id = request.headers.get('KlueCallID', None)
+        # Get caller's pym-call-id or generate one
+        call_id = request.headers.get('PymCallID', None)
         if not call_id:
             call_id = str(uuid.uuid4())
         stack.top.call_id = call_id
 
         # Append current server to call path, or start one
-        call_path = request.headers.get('KlueCallPath', None)
+        call_path = request.headers.get('PymCallPath', None)
         if call_path:
             call_path = "%s.%s" % (call_path, api_name)
         else:
@@ -118,9 +115,9 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             # Remove the parameters already defined in path_params
             for k in list(path_params.keys()):
                 del parameters[k]
-            l = list(parameters.values())
-            assert len(l) == 1
-            args.append(l[0])
+            lst = list(parameters.values())
+            assert len(lst) == 1
+            args.append(lst[0])
 
         if endpoint.param_in_query:
             kwargs.update(parameters)
@@ -128,14 +125,14 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         result = handler_func(*args, **kwargs)
 
         if not result:
-            e = error_callback(KlueException("Have nothing to send in response"))
+            e = error_callback(PyMacaronException("Have nothing to send in response"))
             return _responsify(api_spec, e, 500)
 
         # Did we get the expected response?
         if endpoint.produces_html:
             if type(result) is not tuple:
-                e = error_callback(KlueException("Method %s should return %s but returned %s" %
-                                                 (endpoint.handler_server, endpoint.produces, type(result))))
+                e = error_callback(PyMacaronException("Method %s should return %s but returned %s" %
+                                                      (endpoint.handler_server, endpoint.produces, type(result))))
                 return _responsify(api_spec, e, 500)
 
             # Return an html page
@@ -143,8 +140,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         elif endpoint.produces_json:
             if not hasattr(result, '__module__') or not hasattr(result, '__class__'):
-                e = error_callback(KlueException("Method %s did not return a class instance but a %s" %
-                                                 (endpoint.handler_server, type(result))))
+                e = error_callback(PyMacaronException("Method %s did not return a class instance but a %s" %
+                                                      (endpoint.handler_server, type(result))))
                 return _responsify(api_spec, e, 500)
 
             # If it's already a flask Response, just pass it through.
@@ -154,11 +151,11 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             if result_type == 'flask.wrappers.Response':
                 return result
 
-            # We may have got a klue-microservice Error instance, in which case
+            # We may have got a pymacaron Error instance, in which case
             # it has a http_reply() method...
             if hasattr(result, 'http_reply'):
                 # Let's transform this Error into a flask Response
-                log.info("Looks like a klue-microservice error instance - calling .http_reply()")
+                log.info("Looks like a pymacaron error instance - calling .http_reply()")
                 return result.http_reply()
 
             # Otherwise, assume no error occured and make a flask Response out of

@@ -1,5 +1,5 @@
 dist/
-klue_client_server.egg-info/
+pymacaron_core.egg-info/
 **/__pycache__
 *.tar
 **/*.pyc

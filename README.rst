@@ -1,14 +1,14 @@
-Klue Client-Server
-==================
+PyMacaron Core
+==============
 
 A python framework that takes a Swagger/OpenAPI specification of a json REST
-api and spawns a Flask server and a client library implementing it.
+api and spawns a Flask server and/or a client library implementing it.
 
-'klue-client-server' is an underlying layer for the
-[klue-microservice](https://github.com/erwan-lemonnier/klue-microservice)
+'pymacaron-core' is an underlying layer for the
+[pymacaron](https://github.com/pymacaron/pymacaron)
 framework. If your intent is to code REST apis based on Flask and Swagger,
-[klue-microservice](https://github.com/erwan-lemonnier/klue-microservice)
-offers a lot of extra goodies compared to 'klue-client-server'.
+[pymacaron](https://github.com/pymacaron/pymacaron)
+offers a lot of extra goodies compared to 'pymacaron-core'.
 
 Purpose: easy micro-services
 ----------------------------
@@ -17,8 +17,8 @@ A typical Python micro-service will expose a REST api where each api endpoint
 is implemented by a Python method. This method will in turn call other
 micro-services and process their reply.
 
-Klue Client-Server aims at greatly simplifying the scaffholding needed to
-code and run a micro-service in Python:
+PyMacaron Core aims at greatly simplifying the scaffholding needed to code and
+run a micro-service in Python:
 
   1. Write a set of Swagger specifications describing each api, and defining
      the data formats received and returned by each endpoint. Each
@@ -28,25 +28,24 @@ code and run a micro-service in Python:
   2. Implement Python methods for each of the micro-service's endpoints, as
      described in the service's swagger specification.
 
-  3. Klue Client-Server generates client libraries for all apis, allowing to
-     call api endpoints as normal Python methods. Call results are
-     automatically unmarshalled from json into Python objects. The methods
-     implementing our micro-service's api can now easily call other apis.
+  3. PyMacaron Core generates client libraries for all apis, allowing to call
+     api endpoints as normal Python methods. Call results are automatically
+     unmarshalled from json into Python objects. The methods implementing our
+     micro-service's api can now easily call other apis.
 
-  4. Tell Klue Client-Server which api to serve: it then populates a Flask app
-     with each api route bound to its corresponding Python method. Incoming
-     json objects are transparently validated and unmarshalled into Python
-     objects, passed to the method, and the method's result marshalled back
-     into json.
+  4. Tell PyMacaron Core which api to serve: it then populates a Flask app with
+     each api route bound to its corresponding Python method. Incoming json
+     objects are transparently validated and unmarshalled into Python objects,
+     passed to the method, and the method's result marshalled back into json.
 
 
-Klue Client-Server relies on bravado-core for marshaling/unmarshaling and
-format validation.
+PyMacaron Core relies on bravado-core for marshaling/unmarshaling and format
+validation.
 
 Disclaimer
 ----------
 
-Klue Client-Server is actively used in production, but still under active
+PyMacaron Core is actively used in production, but still under active
 development. Its API is subject to change. It has been tested on python 2.7 and
 3.4.
 
@@ -59,7 +58,7 @@ First, load the Swagger specifications of all the services your server will use:
 
 .. code-block:: python
 
-    from klue.swagger import ApiPool
+    from pymacaron_core.swagger import ApiPool
 
     ApiPool.add('public', yaml_path='public.yaml')
     ApiPool.add('login', yaml_path='login.yaml')
@@ -108,7 +107,7 @@ Populate a Flask app with server endpoints for the 'login' api:
 .. code-block:: python
 
     from flask import Flask
-    from klue.swagger import ApiPool
+    from pymacaron_core.swagger import ApiPool
 
     app = Flask(__name__)
     ApiPool.add('login', yaml_path='login.yaml')
@@ -120,8 +119,8 @@ contain:
 .. code-block:: python
 
     from flask import jsonify
-    from klue.swagger import ApiPool
-    from klue.exceptions import KlueExeption
+    from pymacaron_core.swagger import ApiPool
+    from pymacaron_core.exceptions import PyMacaronException
 
     def do_login(credentials):
         if authenticate_user(credentials):
@@ -140,14 +139,14 @@ contain:
 Decorating server methods:
 ==========================
 
-You can tell Klue Client-Server to apply a decorator to all server methods,
-which comes in handy for gathering analytics or crash data. To do that in the
-example above, modify the server code to be like:
+You can tell PyMacaron Core to apply a decorator to all server methods, which
+comes in handy for gathering analytics or crash data. To do that in the example
+above, modify the server code to be like:
 
 .. code-block:: python
 
     from flask import Flask
-    from klue.swagger import ApiPool
+    from pymacaron_core.swagger import ApiPool
 
     app = Flask(__name__)
     ApiPool.add('login', yaml_path='login.yaml')
@@ -186,7 +185,7 @@ Calling that server now looks like (assuming the server api is called 'public'):
 
 .. code-block:: python
 
-    from klue.swagger import ApiPool
+    from pymacaron_core.swagger import ApiPool
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
@@ -275,17 +274,17 @@ the swagger spec + give example of using them to add-on authentication support.
 Handling Errors
 ===============
 
-Klue-client-server may raise exceptions, for example if the server stub gets an
+PyMacaron Core may raise exceptions, for example if the server stub gets an
 invalid request according to the swagger specification.
 
-However klue-client-server does not know how to format internal errors into an
+However PyMacaron Core does not know how to format internal errors into an
 object model fitting that of the loaded swagger specification. Instead, you
 should provide the apipool with a callback to format exceptions into whatever
 object you wish your api to return. Something like:
 
 .. code-block:: python
 
-    from klue.swagger import ApiPool
+    from pymacaron_core.swagger import ApiPool
 
     def my_error_formatter(e):
         """Take an exception and return a proper swagger Error object"""
@@ -296,7 +295,7 @@ object you wish your api to return. Something like:
 
     ApiPool.add('public', yaml_path='public.yaml', error_callback=my_error_formatter)
 
-Internal errors raised by klue-client-server are instances of klue.exceptions.KlueException
+Internal errors raised by PyMacaron Core are instances of pymacaron_core.exceptions.PyMacaronException
 
 
 Model persistence
@@ -314,7 +313,7 @@ persistent, with as a value the package path to a custom class, like this:
       Foo:
         type: object
         description: a foo
-        x-persist: klue.test.PersistentFoo
+        x-persist: pym.test.PersistentFoo
         properties:
           foo:
             type: string
@@ -339,8 +338,8 @@ The persistence class must implement the static methods 'load_from_db' and
             # Put object into storage
             pass
 
-klue-client-server will inject the methods 'save_to_db' and 'load_from_db' into
-the corresponding model class and instances, so you can write:
+PyMacaron Core will inject the methods 'save_to_db' and 'load_from_db' into the
+corresponding model class and instances, so you can write:
 
 .. code-block:: python
 
@@ -361,11 +360,11 @@ If you have multiple micro-services passing objects among them, it is
 convenient to mark all responses initiated by a given call to your public
 facing API by a common unique call ID.
 
-Klue does this automagically for you, by way of generating and passing around a
-custom HTTP header named 'KlueCallerID'.
+PyMacaron does this automagically for you, by way of generating and passing
+around a custom HTTP header named 'PymCallerID'.
 
 In the same spirit, every subsequent call initiated by a call to the public
-facing API registers a path via the 'KlueCallerPath' header, hence telling each
+facing API registers a path via the 'PymCallerPath' header, hence telling each
 server the list of servers that have been called between the public facing API
 and the current server.
 
@@ -397,4 +396,4 @@ Install
 
 .. code-block:: shell
 
-    pip install klue-client-server
+    pip install pymacaron-core

@@ -28,9 +28,9 @@ if not version:
 print("version: %s" % version)
 
 setup(
-    name='klue-client-server',
+    name='pymacaron-core',
     version=version,
-    url='https://github.com/erwan-lemonnier/klue-client-server',
+    url='https://github.com/pymacaron/pymacaron-core',
     license='BSD',
     author='Erwan Lemonnier',
     author_email='erwan@lemonnier.se',
@@ -44,10 +44,10 @@ setup(
         'nose',
         'mock',
         'responses',
-        'pep8'
+        'pycodestyle'
     ],
     test_suite='nose.collector',
-    packages=['klue', 'klue.swagger'],
+    packages=['pymacaron_core', 'pymacaron_core.swagger'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
