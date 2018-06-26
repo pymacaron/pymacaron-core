@@ -8,7 +8,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 from requests.exceptions import ReadTimeout, ConnectTimeout
-from pymacaron_core.exceptions import PyMacaronException, ValidationError
+from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError
 from pymacaron_core.utils import get_function
 from bravado_core.response import unmarshal_response
 
@@ -100,8 +100,8 @@ def _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
 
     method = endpoint.method.lower()
     if method not in ('get', 'post', 'patch', 'put', 'delete'):
-        raise PyMacaronException("BUG: method %s for %s is not supported. Only get and post are." %
-                                 (endpoint.method, endpoint.path))
+        raise PyMacaronCoreException("BUG: method %s for %s is not supported. Only get and post are." %
+                                     (endpoint.method, endpoint.path))
 
     # Are we doing a local call?
     if local:
@@ -215,17 +215,18 @@ def response_to_result(response, method, url, operation, error_callback):
 
         setattr(response, 'json', get_json)
 
-    # If the remote-server returned an error, raise it as a local PyMacaronException
+    # If the remote-server returned an error, raise it as a local PyMacaronCoreException
     if str(response.status_code) != '200':
         log.warn("Call to %s %s returns error: %s" % (method, url, response.text))
         if 'error_description' in response.text:
-            # We got a PyMacaronException: unmarshal it and return as valid return value
-            # UGLY FRAGILE CODE. To be replaced by proper exception scheme
+            # We got a PyMacaronCoreException: unmarshal it and return as valid
+            # return value UGLY FRAGILE CODE. To be replaced by proper
+            # exception scheme
             pass
         else:
             # Unknown exception...
             log.info("Unknown exception: " + response.text)
-            k = PyMacaronException("Call to %s %s returned unknown exception: %s" % (method, url, response.text))
+            k = PyMacaronCoreException("Call to %s %s returned unknown exception: %s" % (method, url, response.text))
             k.status_code = response.status_code
             c = error_callback
             if hasattr(c, '__func__'):
@@ -291,7 +292,7 @@ class ClientCaller():
                         time.sleep(delay)
                         continue
                     else:
-                        raise PyMacaronException("Call %s %s returned empty response" % (self.method, self.url))
+                        raise PyMacaronCoreException("Call %s %s returned empty response" % (self.method, self.url))
 
                 return response
 

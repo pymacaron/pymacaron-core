@@ -5,7 +5,7 @@ from functools import wraps
 from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
 from flask_cors import cross_origin
-from pymacaron_core.exceptions import PyMacaronException, ValidationError, add_error_handlers
+from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError, add_error_handlers
 from pymacaron_core.utils import get_function
 from bravado_core.request import IncomingRequest, unmarshal_request
 
@@ -125,14 +125,14 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         result = handler_func(*args, **kwargs)
 
         if not result:
-            e = error_callback(PyMacaronException("Have nothing to send in response"))
+            e = error_callback(PyMacaronCoreException("Have nothing to send in response"))
             return _responsify(api_spec, e, 500)
 
         # Did we get the expected response?
         if endpoint.produces_html:
             if type(result) is not tuple:
-                e = error_callback(PyMacaronException("Method %s should return %s but returned %s" %
-                                                      (endpoint.handler_server, endpoint.produces, type(result))))
+                e = error_callback(PyMacaronCoreException("Method %s should return %s but returned %s" %
+                                                          (endpoint.handler_server, endpoint.produces, type(result))))
                 return _responsify(api_spec, e, 500)
 
             # Return an html page
@@ -140,8 +140,8 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
         elif endpoint.produces_json:
             if not hasattr(result, '__module__') or not hasattr(result, '__class__'):
-                e = error_callback(PyMacaronException("Method %s did not return a class instance but a %s" %
-                                                      (endpoint.handler_server, type(result))))
+                e = error_callback(PyMacaronCoreException("Method %s did not return a class instance but a %s" %
+                                                          (endpoint.handler_server, type(result))))
                 return _responsify(api_spec, e, 500)
 
             # If it's already a flask Response, just pass it through.

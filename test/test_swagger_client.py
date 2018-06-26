@@ -5,7 +5,7 @@ import json
 import responses
 from mock import patch, MagicMock
 from pymacaron_core.swagger.client import _format_flask_url
-from pymacaron_core.exceptions import PyMacaronException, ValidationError
+from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError
 
 
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
@@ -42,7 +42,7 @@ class Test(utils.PymTest):
         requests.get = MagicMock()
         handler, _ = self.generate_client_and_spec(self.yaml_query_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(arg1='this', arg2='that')
         # self.assertEqual("Expected 1 caller, got 0", str(e.exception))
 
@@ -90,7 +90,7 @@ class Test(utils.PymTest):
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(param)
 
         requests.post.assert_called_once_with(
@@ -163,7 +163,7 @@ class Test(utils.PymTest):
     def test_requests_parameters_with_path_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -179,7 +179,7 @@ class Test(utils.PymTest):
     def test_handler_extra_parameters(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(
                 foo=123,
                 bar=456,
@@ -221,7 +221,7 @@ class Test(utils.PymTest):
     def test_requests_parameters_with_path_query_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -276,7 +276,7 @@ class Test(utils.PymTest):
         model_class = spec.definitions['Param']
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(param, foo=123)
 
         requests.get.assert_called_once_with(
@@ -294,7 +294,7 @@ class Test(utils.PymTest):
         y = self.yaml_query_param
         y = y.replace('get:', 'foobar:')
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler, spec = self.generate_client_and_spec(y)
         self.assertTrue('BUG: method FOOBAR for /v1/some/path is not supported' in str(e.exception))
 
@@ -303,7 +303,7 @@ class Test(utils.PymTest):
     def test_requests_client_override_read_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(read_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(
@@ -319,7 +319,7 @@ class Test(utils.PymTest):
     def test_requests_client_override_connect_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronException) as e:
+        with self.assertRaises(PyMacaronCoreException) as e:
             handler(connect_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(

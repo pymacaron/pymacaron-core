@@ -120,7 +120,7 @@ contain:
 
     from flask import jsonify
     from pymacaron_core.swagger import ApiPool
-    from pymacaron_core.exceptions import PyMacaronException
+    from pymacaron_core.exceptions import PyMacaronCoreException
 
     def do_login(credentials):
         if authenticate_user(credentials):
@@ -295,7 +295,7 @@ object you wish your api to return. Something like:
 
     ApiPool.add('public', yaml_path='public.yaml', error_callback=my_error_formatter)
 
-Internal errors raised by PyMacaron Core are instances of pymacaron_core.exceptions.PyMacaronException
+Internal errors raised by PyMacaron Core are instances of pymacaron_core.exceptions.PyMacaronCoreException
 
 
 Model persistence

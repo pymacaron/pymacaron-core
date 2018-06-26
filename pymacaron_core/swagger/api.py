@@ -4,7 +4,7 @@ import logging
 from pymacaron_core.swagger.server import spawn_server_api
 from pymacaron_core.swagger.client import generate_client_callers
 from pymacaron_core.swagger.spec import ApiSpec
-from pymacaron_core.exceptions import PyMacaronException
+from pymacaron_core.exceptions import PyMacaronCoreException
 from pymacaron_core.utils import get_function
 
 log = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class API():
         c = get_function(pkg_name)
         for name in ('load_from_db', 'save_to_db'):
             if not hasattr(c, name):
-                raise PyMacaronException("Class %s has no static method '%s'" % (pkg_name, name))
+                raise PyMacaronCoreException("Class %s has no static method '%s'" % (pkg_name, name))
 
         log.info("Making %s persistent via %s" % (model_name, pkg_name))
 

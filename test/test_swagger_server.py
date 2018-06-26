@@ -4,7 +4,6 @@ import pprint
 import json
 
 from flask import jsonify
-from pymacaron_core.exceptions import PyMacaronException
 from mock import patch
 
 
