@@ -112,6 +112,8 @@ class ApiSpec():
             for k, v in list(m.items()):
                 if k in ('__persistence_class__', ) or callable(v):
                     del m[k]
+                elif callable(v):
+                    del m[k]
                 elif isinstance(v, dict):
                     self.cleanup_model(v)
                 elif isinstance(v, list):
