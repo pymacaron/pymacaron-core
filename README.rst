@@ -119,7 +119,7 @@ contain:
 .. code-block:: python
 
     from flask import jsonify
-    from pymacaron_core.swagger import ApiPool
+    from pymacaron_core.swagger.apipool import ApiPool
     from pymacaron_core.exceptions import PyMacaronCoreException
 
     def do_login(credentials):

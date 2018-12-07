@@ -10,6 +10,12 @@ from pymacaron_core.utils import get_function
 log = logging.getLogger(__name__)
 
 
+# Monkey patch bravado-core's __str__ and __repr__ - REQUIRES v 5.10.0
+log.debug("Monkey-patching Bravado 5.10.0's Model.__str__()")
+from bravado_core.model import Model
+Model.__str__ = lambda x: "<swagger %s>" % x.__class__.__name__
+
+
 class APIClient():
     """Object gathering the API's client side code.
     Offers client-side methods to call every server endpoint declared in the API.
