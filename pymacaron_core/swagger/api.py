@@ -101,6 +101,8 @@ class API():
                 spec = swagger_dict['definitions'][model_name]
                 if 'x-persist' in spec:
                     self._make_persistent(model_name, spec['x-persist'])
+                if 'x-mixin' in spec:
+                    self._mixin_with(model_name, spec['x-mixin'])
 
         # Auto-generate client callers
         # so we can write
@@ -116,6 +118,30 @@ class API():
 
         for method, caller in list(callers_dict.items()):
             setattr(self.client, method, caller)
+
+
+    def _mixin_with(self, model_name, pkg_name):
+        """Mixin a different class into into the bravado-core model class"""
+
+        #
+        # WARNING: ugly piece of monkey-patching below. Hopefully will replace
+        # with native bravado-core code in the future...
+        #
+
+        log.info("Mixing %s with %s" % (model_name, pkg_name))
+
+        # Load class at path pkg_name
+        c = get_function(pkg_name)
+
+        mixins = {}
+        for name in dir(c):
+            if not name.startswith('_'):
+                mixins[name] = getattr(c, name)
+
+        # Replace model generator with one that adds 'save_to_db' to every instance
+        model = getattr(self.model, model_name)
+        n = self._wrap_bravado_model_generator(model, mixins=mixins)
+        setattr(self.model, model_name, n)
 
 
     def _make_persistent(self, model_name, pkg_name):
@@ -137,22 +163,30 @@ class API():
 
         # Replace model generator with one that adds 'save_to_db' to every instance
         model = getattr(self.model, model_name)
-        n = self._wrap_bravado_model_generator(model, c.save_to_db, pkg_name)
+        n = self._wrap_bravado_model_generator(model, save_to_db=c.save_to_db, persistence_class=pkg_name)
         setattr(self.model, model_name, n)
 
         # Add class method load_from_db to model generator
         model = getattr(self.model, model_name)
         setattr(model, 'load_from_db', c.load_from_db)
 
-    def _wrap_bravado_model_generator(self, model, method, pkg_name):
+
+    def _wrap_bravado_model_generator(self, model, save_to_db=None, persistence_class=None, mixins={}):
 
         def new_creator(*args, **kwargs):
             r = model(*args, **kwargs)
-            setattr(r, 'save_to_db', types.MethodType(method, r))
-            setattr(r, '__persistence_class__', pkg_name)
+            if save_to_db:
+                setattr(r, 'save_to_db', types.MethodType(save_to_db, r))
+            if persistence_class:
+                setattr(r, '__persistence_class__', persistence_class)
+            if mixins:
+                for name, method in mixins.items():
+                    setattr(r, name, types.MethodType(method, r))
             return r
 
         return new_creator
+
+
 
     #
     # End of ugly-monkey-patching
