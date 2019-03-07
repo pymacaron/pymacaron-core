@@ -33,8 +33,6 @@ def generate_client_callers(spec, timeout, error_callback, local, app):
         if not endpoint.handler_client:
             return
 
-        log.info("Generating client for %s %s" % (endpoint.method, endpoint.path))
-
         callers_dict[endpoint.handler_client] = _generate_client_caller(spec, endpoint, timeout, error_callback, local, app)
 
     spec.call_on_each_endpoint(mycallback)

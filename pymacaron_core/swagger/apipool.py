@@ -85,7 +85,7 @@ class ApiPool():
             for model_name, model_def in api.api_spec.swagger_dict['definitions'].items():
                 if model_name in models:
                     other_api_name, other_model_def, _ = models.get(model_name)
-                    log.info("Model %s in %s is a duplicate of one in %s" % (model_name, api_name, other_api_name))
+                    log.debug("Model %s in %s is a duplicate of one in %s" % (model_name, api_name, other_api_name))
 
                     if ApiPool._cmp_models(model_def, other_model_def) != 0:
                         raise MergeApisException("Cannot merge apis! Model %s exists in apis %s and %s but have different definitions:\n[%s]\n[%s]"
@@ -95,7 +95,7 @@ class ApiPool():
 
         # Second pass: patch every models and replace with the one we decided
         # to keep
-        log.info("Patching api definitions to remove all duplicates")
+        log.debug("Patching api definitions to remove all duplicates")
         for api_name, api in apis.items():
             for model_name in api.api_spec.definitions.keys():
                 _, _, model_class = models.get(model_name)
