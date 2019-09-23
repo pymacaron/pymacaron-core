@@ -94,40 +94,45 @@ class ApiSpec():
 
     def model_to_json(self, object, cleanup=True):
         """Take a model instance and return it as a json struct"""
-        model_name = type(object).__name__
-        if model_name not in self.swagger_dict['definitions']:
-            raise ValidationError("Swagger spec has no definition for model %s" % model_name)
-        model_def = self.swagger_dict['definitions'][model_name]
-        log.debug("Marshalling %s into json" % model_name)
-        m = marshal_model(self.spec, model_def, object)
-        if cleanup:
-            self.cleanup_model(m)
-        return m
+        return object.to_json()
+    #     model_name = type(object).__name__
+    #     if model_name not in self.swagger_dict['definitions']:
+    #         raise ValidationError("Swagger spec has no definition for model %s" % model_name)
+    #     model_def = self.swagger_dict['definitions'][model_name]
+    #     log.debug("Marshalling %s into json" % model_name)
+    #     m = marshal_model(self.spec, model_def, object)
+    #     if cleanup:
+    #         self.cleanup_model(m)
+    #     return m
 
 
-    def cleanup_model(self, m):
-        # Recent versions of bravado-core leave the monkey-patched save_to_db
-        # method in the json object - Let's remove them
-        if isinstance(m, dict):
-            for k, v in list(m.items()):
-                if k in ('__persistence_class__', ) or callable(v):
-                    del m[k]
-                elif callable(v):
-                    del m[k]
-                elif isinstance(v, dict):
-                    self.cleanup_model(v)
-                elif isinstance(v, list):
-                    for i in v:
-                        self.cleanup_model(i)
+    # def cleanup_model(self, m):
+    #     # Recent versions of bravado-core leave the monkey-patched save_to_db
+    #     # method in the json object - Let's remove them
+    #     if isinstance(m, dict):
+    #         for k, v in list(m.items()):
+    #             if k in ('__persistence_class__', ) or callable(v):
+    #                 del m[k]
+    #             elif callable(v):
+    #                 del m[k]
+    #             elif isinstance(v, dict):
+    #                 self.cleanup_model(v)
+    #             elif isinstance(v, list):
+    #                 for i in v:
+    #                     self.cleanup_model(i)
 
 
     def json_to_model(self, model_name, j):
         """Take a json strust and a model name, and return a model instance"""
         if model_name not in self.swagger_dict['definitions']:
             raise ValidationError("Swagger spec has no definition for model %s" % model_name)
-        model_def = self.swagger_dict['definitions'][model_name]
-        log.debug("Unmarshalling json into %s" % model_name)
-        return unmarshal_model(self.spec, model_def, j)
+
+        from pymacaron_core.swagger.api import APIModels
+        o = getattr(APIModels, model_name)
+        return o.from_json(j)
+        # model_def = self.swagger_dict['definitions'][model_name]
+        # log.debug("Unmarshalling json into %s" % model_name)
+        # return unmarshal_model(self.spec, model_def, j)
 
 
     def validate(self, model_name, object):

@@ -37,7 +37,7 @@ setup(
     description='Swagger + Flask + Bravado = Client/Server auto-spawning',
     install_requires=[
         'flask==0.10.1',
-        'bravado-core==5.10.0',
+        'bravado-core==5.13.2',
         'pyyaml'
     ],
     tests_require=[

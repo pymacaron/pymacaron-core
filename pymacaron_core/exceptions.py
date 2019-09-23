@@ -21,6 +21,8 @@ class InternalServerError(PyMacaronCoreException):
 class MergeApisException(PyMacaronCoreException):
     status_code = 500
 
+class PyMacaronModelException(PyMacaronCoreException):
+    status_code = 500
 
 def add_error_handlers(app):
     """Add custom error handlers for PyMacaronCoreExceptions to the app"""
