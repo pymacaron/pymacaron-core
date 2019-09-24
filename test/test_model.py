@@ -28,7 +28,7 @@ definitions:
         type: integer
       o:
         $ref: '#/definitions/Bar'
-      l:
+      lst:
         type: array
         items:
           type: string
@@ -165,7 +165,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(a, b)
 
         # Changing bravado values makes them different
-        a.o.s='123'
+        a.o.s = '123'
         self.assertNotEqual(a, b)
 
 
@@ -176,7 +176,7 @@ class Tests(unittest.TestCase):
         a = Foo(
             s='abc',
             i=12,
-            l=['a', 'b', 'c'],
+            lst=['a', 'b', 'c'],
             o=Bar(
                 s='1',
                 o=Baz(
@@ -198,7 +198,7 @@ class Tests(unittest.TestCase):
             {
                 's': 'abc',
                 'i': 12,
-                'l': ['a', 'b', 'c'],
+                'lst': ['a', 'b', 'c'],
                 'o': {'o': {'s': '2'}, 's': '1'},
                 'lo': [{'s': 'r'}, {'s': 't'}, {'s': 'u'}, {}],
             }
