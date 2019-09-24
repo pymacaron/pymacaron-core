@@ -81,7 +81,6 @@ class API():
         # Add aliases to all models into self.model, so a developer may write:
         # 'ApiPool.<api_name>.model.<model_name>(*args)' to instantiate a model
         for model_name in model_names:
-            log.debug("LOADING MODEL %s" % model_name)
             setattr(self.model, model_name, get_model(model_name))
 
         if error_callback:

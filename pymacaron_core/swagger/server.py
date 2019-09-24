@@ -7,7 +7,7 @@ from flask import request, jsonify
 from flask_cors import cross_origin
 from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError, add_error_handlers
 from pymacaron_core.utils import get_function
-from pymacaron_core.models import get_pymacaron_class_for_bravado_instance
+from pymacaron_core.models import get_model
 from bravado_core.request import IncomingRequest, unmarshal_request
 
 
@@ -121,7 +121,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
             # Now convert the Bravado body object into a pymacaron model
             body = lst[0]
-            cls = get_pymacaron_class_for_bravado_instance(body)
+            cls = get_model(body.__class__.__name__)
             body = cls.from_bravado(body)
             args.append(body)
 

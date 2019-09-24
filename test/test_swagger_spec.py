@@ -498,12 +498,12 @@ definitions:
         }
 
         # validate ok!
-        m = spec.validate('Foo', f)
+        spec.validate('Foo', f)
 
         # missing required property
         f = {'bar': {}}
         try:
-            m = spec.validate('Foo', f)
+            spec.validate('Foo', f)
         except Exception as e:
             self.assertTrue("'a' is a required property" in str(e))
         else:
@@ -512,7 +512,7 @@ definitions:
         # invalid type
         f = {'a': 'oaeuaoue'}
         try:
-            m = spec.validate('Bar', f)
+            spec.validate('Bar', f)
         except Exception as e:
             self.assertTrue("'oaeuaoue' is not of type 'number'" in str(e))
         else:
@@ -521,7 +521,7 @@ definitions:
         # invalid object reference type
         f = {'bar': '123'}
         try:
-            m = spec.validate('Foo', f)
+            spec.validate('Foo', f)
         except Exception as e:
             self.assertTrue("'123' is not of type 'object'" in str(e))
         else:

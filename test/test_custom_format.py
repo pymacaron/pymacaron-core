@@ -1,4 +1,3 @@
-import pprint
 import unittest
 from jsonschema.exceptions import ValidationError
 from bravado_core.formatter import SwaggerFormat
@@ -16,17 +15,6 @@ formats = []
 def validate_foo(foo):
     if foo != 'foo':
         raise SwaggerValidationError("Foo is not foo")
-
-def foo_to_wire(f):
-    return f.foo
-
-def foo_to_python(f):
-    return Foo(f)
-
-def my_to_wire(o):
-    print(("GOT: %s" % type(o)))
-    print(("DIR: " + pprint.pformat(dir(o))))
-    return o.foo
 
 
 foo_format = SwaggerFormat(

@@ -23,23 +23,6 @@ def get_model(model_name):
     raise ValidationError("Swagger spec has no definition for model %s" % model_name)
 
 
-# Keep track for every bravado model name of the pymacaron class that encapsulate it
-# {
-#     <bravado model_name>: <instance of GenericModel encapsulating that bravado model>
-# }
-
-BRAVADO_TO_PYM_CLASS = {}
-
-
-def get_pymacaron_class_for_bravado_instance(bravado_instance):
-    """Take a bravado instance and return the pymacaron class that encapsulate
-    that instance
-    """
-    model_name = bravado_instance.__class__.__name__
-    log.debug("Got bravado instance of type %s" % model_name)
-    return BRAVADO_TO_PYM_CLASS[model_name]
-
-
 class GenericModel(object):
     """Instances of PyMacaron GenericModel are passed to and returned by the API
     endpoints.
@@ -152,12 +135,12 @@ class GenericModel(object):
         for k in getattr(p, '__property_names'):
             v = getattr(o, k)
             if isinstance(v, bravado_core.model.Model):
-                cls = get_pymacaron_class_for_bravado_instance(v)
+                cls = get_model(v.__class__.__name__)
                 setattr(o, k, cls.from_bravado(v))
             elif type(v) is list:
                 for i in range(len(v)):
                     if isinstance(v[i], bravado_core.model.Model):
-                        cls = get_pymacaron_class_for_bravado_instance(v[i])
+                        cls = get_model(v[i].__class__.__name__)
                         v[i] = cls.from_bravado(v[i])
         return p
 
@@ -220,9 +203,6 @@ def generate_model_class(name=None, bravado_class=None, swagger_dict=None, swagg
         o.load_from_db = load_from_db
 
     # And remember the mapping between this bravado model and its pymacaron model
-    global BRAVADO_TO_PYM_CLASS
-    BRAVADO_TO_PYM_CLASS[name] = o
-
     setattr(Models, name, o)
 
     return o

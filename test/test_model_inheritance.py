@@ -1,5 +1,4 @@
 import unittest
-from mock import patch
 from pymacaron_core.swagger.api import API
 
 
