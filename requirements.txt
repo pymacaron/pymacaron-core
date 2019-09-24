@@ -6,6 +6,6 @@ requests
 pep8
 six
 bravado-core==5.13.2
+PyYAML==5.1.2
 responses
-pyyaml
 gevent

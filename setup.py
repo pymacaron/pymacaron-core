@@ -38,7 +38,7 @@ setup(
     install_requires=[
         'flask==0.10.1',
         'bravado-core==5.13.2',
-        'pyyaml'
+        'PyYAML==5.1.2',
     ],
     tests_require=[
         'nose',
