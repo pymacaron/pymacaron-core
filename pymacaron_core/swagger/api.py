@@ -3,7 +3,7 @@ import logging
 from pymacaron_core.swagger.server import spawn_server_api
 from pymacaron_core.swagger.client import generate_client_callers
 from pymacaron_core.swagger.spec import ApiSpec
-from pymacaron_core.models import generate_model_class
+from pymacaron_core.models import get_model
 
 
 log = logging.getLogger(__name__)
@@ -68,52 +68,27 @@ class API():
 
         if yaml_path:
             log.info("Loading swagger file at %s" % yaml_path)
-            swagger_dict = yaml.load(open(yaml_path))
+            swagger_dict = yaml.load(open(yaml_path), Loader=yaml.FullLoader)
         elif yaml_str:
-            swagger_dict = yaml.load(yaml_str)
+            swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         else:
             raise Exception("No swagger file specified")
 
         self.api_spec = ApiSpec(swagger_dict, formats, host, port, proto, verify_ssl)
 
+        model_names = self.api_spec.load_models(do_persist=do_persist)
+
+        # Add aliases to all models into self.model, so a developer may write:
+        # 'ApiPool.<api_name>.model.<model_name>(*args)' to instantiate a model
+        for model_name in model_names:
+            log.debug("LOADING MODEL %s" % model_name)
+            setattr(self.model, model_name, get_model(model_name))
+
         if error_callback:
             self.error_callback = error_callback
 
-        # Auto-generate class methods for every object model defined
-        # in the swagger spec, calling that model's constructor
-        # Ex:
-        #     my_api.Version(version='1.2.3')   => return a Version object
-        for model_name in self.api_spec.definitions:
-
-            spec = swagger_dict['definitions'][model_name]
-
-            # Should this model inherit from a base class?
-            parent_name = None
-            if 'x-parent' in spec:
-                parent_name = spec['x-parent']
-
-            # Is this model persistent?
-            persist = None
-            if do_persist and 'x-persist' in spec:
-                persist = spec['x-persist']
-
-            # Associate model generator to ApiPool().<api_name>.model.<model_name>
-            log.debug("Generating model class for %s" % model_name)
-            model = generate_model_class(
-                name=model_name,
-                # bravado_class=generate_model_instantiator(model_name, self.api_spec.definitions),
-                bravado_class=self.api_spec.definitions.get(model_name),
-                swagger_dict=swagger_dict['definitions'][model_name],
-                swagger_spec=self.api_spec.spec,
-                parent_name=parent_name,
-                persist=persist,
-                properties=spec['properties'] if 'properties' in spec else {},
-            )
-            setattr(self.model, model_name, model)
-
-        # Auto-generate client callers
-        # so we can write
-        # api.call.login(param)  => call /v1/login/ on server with param as json parameter
+        # Auto-generate client callers, so a developer may write:
+        # 'ApiPool.<api_name>.call.login(param)' to call the login endpoint
         self._generate_client_callers()
 
 

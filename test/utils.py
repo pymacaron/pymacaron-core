@@ -11,8 +11,9 @@ class PymTest(unittest.TestCase):
 
     def generate_client_and_spec(self, yaml_str, callback=default_error_callback, local=False):
 
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
+        spec.load_models()
         callers_dict = generate_client_callers(
             spec,
             10,
@@ -31,8 +32,9 @@ class PymTest(unittest.TestCase):
 
 
     def generate_server_app(self, yaml_str, callback=default_error_callback):
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
+        spec.load_models()
         app = Flask('test')
         spawn_server_api('somename', app, spec, callback, None)
         return app, spec

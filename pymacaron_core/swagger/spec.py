@@ -1,11 +1,11 @@
 import pprint
 import logging
-from pymacaron_core.exceptions import ValidationError
 from bravado_core.spec import Spec
 from bravado_core.operation import Operation
-from bravado_core.marshal import marshal_model
-from bravado_core.unmarshal import unmarshal_model
 from bravado_core.validate import validate_schema_object
+from pymacaron_core.exceptions import ValidationError
+from pymacaron_core.models import generate_model_class
+from pymacaron_core.models import get_model
 
 
 log = logging.getLogger(__name__)
@@ -92,47 +92,51 @@ class ApiSpec():
         self.version = swagger_dict.get('info', {}).get('version', '')
 
 
+    def load_models(self, do_persist=True):
+        """Generate PyMacaron Model classes for every data model in that API and store
+        them in the calling api object"""
+
+        names = []
+        for model_name in self.definitions:
+
+            model_spec = self.swagger_dict['definitions'][model_name]
+
+            # Should this model inherit from a base class?
+            parent_name = None
+            if 'x-parent' in model_spec:
+                parent_name = model_spec['x-parent']
+
+            # Is this model persistent?
+            persist = None
+            if do_persist and 'x-persist' in model_spec:
+                persist = model_spec['x-persist']
+
+            # Associate model generator to ApiPool().<api_name>.model.<model_name>
+            log.debug("Generating model class for %s" % model_name)
+            generate_model_class(
+                name=model_name,
+                bravado_class=self.definitions.get(model_name),
+                swagger_dict=model_spec,
+                swagger_spec=self.spec,
+                parent_name=parent_name,
+                persist=persist,
+                properties=model_spec['properties'] if 'properties' in model_spec else {},
+            )
+
+            names.append(model_name)
+
+        return names
+
+
     def model_to_json(self, object, cleanup=True):
         """Take a model instance and return it as a json struct"""
         return object.to_json()
-    #     model_name = type(object).__name__
-    #     if model_name not in self.swagger_dict['definitions']:
-    #         raise ValidationError("Swagger spec has no definition for model %s" % model_name)
-    #     model_def = self.swagger_dict['definitions'][model_name]
-    #     log.debug("Marshalling %s into json" % model_name)
-    #     m = marshal_model(self.spec, model_def, object)
-    #     if cleanup:
-    #         self.cleanup_model(m)
-    #     return m
-
-
-    # def cleanup_model(self, m):
-    #     # Recent versions of bravado-core leave the monkey-patched save_to_db
-    #     # method in the json object - Let's remove them
-    #     if isinstance(m, dict):
-    #         for k, v in list(m.items()):
-    #             if k in ('__persistence_class__', ) or callable(v):
-    #                 del m[k]
-    #             elif callable(v):
-    #                 del m[k]
-    #             elif isinstance(v, dict):
-    #                 self.cleanup_model(v)
-    #             elif isinstance(v, list):
-    #                 for i in v:
-    #                     self.cleanup_model(i)
 
 
     def json_to_model(self, model_name, j):
-        """Take a json strust and a model name, and return a model instance"""
-        if model_name not in self.swagger_dict['definitions']:
-            raise ValidationError("Swagger spec has no definition for model %s" % model_name)
-
-        from pymacaron_core.swagger.api import APIModels
-        o = getattr(APIModels, model_name)
-        return o.from_json(j)
-        # model_def = self.swagger_dict['definitions'][model_name]
-        # log.debug("Unmarshalling json into %s" % model_name)
-        # return unmarshal_model(self.spec, model_def, j)
+        """Take a json struct and a model name, and return a model instance"""
+        cls = get_model(model_name)
+        return cls.from_json(j)
 
 
     def validate(self, model_name, object):

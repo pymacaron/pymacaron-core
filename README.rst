@@ -1,8 +1,9 @@
 PyMacaron Core
 ==============
 
-A python framework that takes a Swagger/OpenAPI specification of a json REST
-api and spawns a Flask server and/or a client library implementing it.
+A python framework that takes the Swagger/OpenAPI representation of a json REST
+api and spawns a Flask server implementing it, as well as a client library to
+call that api.
 
 'pymacaron-core' is an underlying layer for the
 [pymacaron](https://github.com/pymacaron/pymacaron)
@@ -45,9 +46,9 @@ validation.
 Disclaimer
 ----------
 
-PyMacaron Core is actively used in production, but still under active
-development. Its API is subject to change. It has been tested on python 2.7 and
-3.4.
+PyMacaron Core is actively used in production, but undergoes major refactorings
+on a regular basis. Its API is subject to change. It has been tested on python
+2.7 and 3.4.
 
 Asynchronous support based on grequests was dropped after version 0.0.92
 

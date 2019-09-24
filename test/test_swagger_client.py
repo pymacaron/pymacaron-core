@@ -6,6 +6,7 @@ import responses
 from mock import patch, MagicMock
 from pymacaron_core.swagger.client import _format_flask_url
 from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError
+from pymacaron_core.models import get_model
 
 
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
@@ -42,7 +43,7 @@ class Test(utils.PymTest):
         requests.get = MagicMock()
         handler, _ = self.generate_client_and_spec(self.yaml_query_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(arg1='this', arg2='that')
         # self.assertEqual("Expected 1 caller, got 0", str(e.exception))
 
@@ -69,13 +70,13 @@ class Test(utils.PymTest):
         )
 
         # Only 1 parameter expected
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValidationError):
             res = handler()
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ValidationError):
             res = handler(1, 2)
 
         # Send a valid parameter object
-        model_class = spec.definitions['Param']
+        model_class = get_model('Param')
         param = model_class(arg1='a', arg2='b')
 
         res = handler(param)
@@ -87,10 +88,10 @@ class Test(utils.PymTest):
     @patch('pymacaron_core.swagger.client.requests')
     def test_requests_parameters_with_body_param(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_body_param)
-        model_class = spec.definitions['Param']
+        model_class = get_model('Param')
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(param)
 
         requests.post.assert_called_once_with(
@@ -163,7 +164,7 @@ class Test(utils.PymTest):
     def test_requests_parameters_with_path_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -179,7 +180,7 @@ class Test(utils.PymTest):
     def test_handler_extra_parameters(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(
                 foo=123,
                 bar=456,
@@ -221,7 +222,7 @@ class Test(utils.PymTest):
     def test_requests_parameters_with_path_query_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(foo=123, bar=456)
 
         requests.get.assert_called_once_with(
@@ -247,7 +248,7 @@ class Test(utils.PymTest):
         )
 
         # Send a valid parameter object
-        model_class = spec.definitions['Param']
+        model_class = get_model('Param')
         param = model_class(arg1='a', arg2='b')
 
         res = handler(param, foo=123)
@@ -273,10 +274,10 @@ class Test(utils.PymTest):
     def test_requests_parameters_with_path_body_params(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_body_param)
 
-        model_class = spec.definitions['Param']
+        model_class = get_model('Param')
         param = model_class(arg1='a', arg2='b')
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(param, foo=123)
 
         requests.get.assert_called_once_with(
@@ -303,7 +304,7 @@ class Test(utils.PymTest):
     def test_requests_client_override_read_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(read_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(
@@ -319,7 +320,7 @@ class Test(utils.PymTest):
     def test_requests_client_override_connect_timeout(self, requests):
         handler, spec = self.generate_client_and_spec(self.yaml_path_query_param)
 
-        with self.assertRaises(PyMacaronCoreException) as e:
+        with self.assertRaises(PyMacaronCoreException):
             handler(connect_timeout=50, foo='123', bar='456')
 
         requests.get.assert_called_once_with(
@@ -351,7 +352,7 @@ class Test(utils.PymTest):
         )
 
         # Send a valid parameter object
-        model_class = spec.definitions['Param']
+        model_class = get_model('Param')
         param = model_class(arg1='a', arg2='b')
 
         res = handler(param)

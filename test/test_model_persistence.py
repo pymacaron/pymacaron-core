@@ -56,6 +56,7 @@ class Tests(unittest.TestCase):
         m.assert_called_once_with(1, 2, a=1, b=2)
         self.assertEqual(f, 'foobar')
 
+
     @patch("pymacaron_core.test.PersistentFoo.load_from_db")
     def test_load_from_db__return_tupple(self, m):
         m.return_value = ('foobar', 'barbaz')

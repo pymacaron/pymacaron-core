@@ -3,6 +3,7 @@ import pprint
 import yaml
 import unittest
 from pymacaron_core.swagger.spec import ApiSpec
+from pymacaron_core.models import get_model
 
 
 class Tests(unittest.TestCase):
@@ -25,7 +26,7 @@ basePath: /v1
 produces:
   - application/json
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
         self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
         self.assertEqual(spec.port, 80)
@@ -47,7 +48,7 @@ basePath: /v1
 produces:
   - application/json
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
         self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
         self.assertEqual(spec.port, 443)
@@ -70,7 +71,7 @@ basePath: /v1
 produces:
   - application/json
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
         self.assertEqual(spec.host, 'pnt-login.elasticbeanstalk.com')
         self.assertEqual(spec.port, 443)
@@ -96,7 +97,7 @@ paths:
           type: string
       x-bind-server: pnt_login.handlers.do_login
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
 
         with self.assertRaisesRegex(Exception, "Swagger api has no 'produces' section"):
@@ -123,7 +124,7 @@ paths:
         - foo/bar
       x-bind-server: pnt_login.handlers.do_login
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
 
         with self.assertRaisesRegex(Exception, "Only 'application/json' or 'text/html' are supported."):
@@ -151,7 +152,7 @@ paths:
         - bar/baz
       x-bind-server: pnt_login.handlers.do_login
 """
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
 
         with self.assertRaisesRegex(Exception, "Expecting only one type"):
@@ -307,7 +308,7 @@ definitions:
 
         Tests.call_count = 0
 
-        swagger_dict = yaml.load(yaml_str)
+        swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
 
         def test_callback(data):
@@ -421,7 +422,7 @@ definitions:
         format: int32
       b:
         type: string
-        format: date-time
+        format: date
         description: b
       c:
         type: number
@@ -434,11 +435,12 @@ definitions:
 
     def test_model_to_json(self):
         # Test model_to_json on a deep structure, with object in object
-        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        swagger_dict = yaml.load(Tests.yaml_complex_model, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
+        spec.load_models()
 
-        Foo = spec.definitions['Foo']
-        Bar = spec.definitions['Bar']
+        Foo = get_model('Foo')
+        Bar = get_model('Bar')
 
         f = Foo(
             token='abcd',
@@ -461,8 +463,9 @@ definitions:
 
 
     def test_json_to_model(self):
-        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        swagger_dict = yaml.load(Tests.yaml_complex_model, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
+        spec.load_models()
 
         j = {
             'token': 'abcd',
@@ -474,19 +477,17 @@ definitions:
 
         m = spec.json_to_model('Foo', j)
 
-        Foo = spec.definitions['Foo']
-        Bar = spec.definitions['Bar']
-
         self.assertEqual(m.token, 'abcd')
         b = m.bar
         self.assertEqual(b.__class__.__name__, 'Bar')
         self.assertEqual(b.a, 1)
-        self.assertEqual(str(b.b), str(date.today()) + " 00:00:00")
+        self.assertEqual(str(b.b), str(date.today()))
 
 
     def test_validate(self):
-        swagger_dict = yaml.load(Tests.yaml_complex_model)
+        swagger_dict = yaml.load(Tests.yaml_complex_model, Loader=yaml.FullLoader)
         spec = ApiSpec(swagger_dict)
+        spec.load_models()
 
         f = {
             'token': 'abcd',

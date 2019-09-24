@@ -4,11 +4,23 @@ from copy import deepcopy
 from bravado_core.marshal import marshal_model
 from bravado_core.unmarshal import unmarshal_model
 import bravado_core.model
+from pymacaron_core.exceptions import ValidationError
 from pymacaron_core.exceptions import PyMacaronModelException
 from pymacaron_core.utils import get_function
 
 
 log = logging.getLogger(__name__)
+
+
+class Models():
+    """Class holding all generated models"""
+    pass
+
+
+def get_model(model_name):
+    if hasattr(Models, model_name):
+        return getattr(Models, model_name)
+    raise ValidationError("Swagger spec has no definition for model %s" % model_name)
 
 
 # Keep track for every bravado model name of the pymacaron class that encapsulate it
@@ -43,7 +55,6 @@ class GenericModel(object):
     __swagger_dict = None
     __swagger_spec = None
 
-
     #
     # Delegate getter/setter/etc to Bravado model
     #
@@ -74,10 +85,10 @@ class GenericModel(object):
         else:
             super().__delattr__(k)
 
-    # def __eq__(self, other):
-    #     if type(self) is not type(other):
-    #         return False
-    #     return self.__bravado_instance == other.__bravado_instance
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
+        return getattr(self, '__bravado_instance') == getattr(other, '__bravado_instance')
 
     def __repr__(self):
         return 'PyMacaron:%s:%s' % (getattr(self, '__model_name'), str(getattr(self, '__bravado_instance')))
@@ -204,12 +215,14 @@ def generate_model_class(name=None, bravado_class=None, swagger_dict=None, swagg
 
     if persist:
         # Monkey-patch the class method 'load_from_db'
-        def load_from_db(*args):
-            return persistence_class.load_from_db()
+        def load_from_db(*args, **kwargs):
+            return persistence_class.load_from_db(*args, **kwargs)
         o.load_from_db = load_from_db
 
     # And remember the mapping between this bravado model and its pymacaron model
     global BRAVADO_TO_PYM_CLASS
     BRAVADO_TO_PYM_CLASS[name] = o
+
+    setattr(Models, name, o)
 
     return o

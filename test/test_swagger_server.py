@@ -2,12 +2,18 @@ import imp
 import os
 import pprint
 import json
+import logging
 
 from flask import jsonify
 from mock import patch
 
+from pymacaron_core.models import get_model
+
 
 utils = imp.load_source('common', os.path.join(os.path.dirname(__file__), 'utils.py'))
+
+
+log = logging.getLogger(__name__)
 
 
 class Test(utils.PymTest):
@@ -34,7 +40,7 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_no_param)
 
-        SessionToken = spec.definitions['SessionToken']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='123')
 
         with app.test_client() as c:
@@ -92,20 +98,15 @@ class Test(utils.PymTest):
         func.__name__ = 'return_token'
         func.return_value = {'a': 1}
 
-        carrier = {'spec': None}
-
         def callback(e):
-            return carrier['spec'].json_to_model(
-                'SessionToken',
-                {'token': str(e)},
-            )
+            return get_model('SessionToken')(token=str(e))
 
         app, spec = self.generate_server_app(self.yaml_no_param, callback=callback)
-        carrier['spec'] = spec
 
         with app.test_client() as c:
             r = c.get('/v1/no/param')
             j = json.loads(r.data.decode('utf-8'))
+            log.debug("Got reply: %s" % j)
             self.assertError(r, 500, 'INTERNAL SERVER ERROR')
             self.assertDictEqual(
                 j,
@@ -114,7 +115,7 @@ class Test(utils.PymTest):
 
 # TODO: enable this test when server-side validation is enabled
 #
-#    c = spec.definitions['Credentials']
+#    c = get_model('Credentials')
 #    func.return_value = c(email='asdasd')
 #
 #     with app.test_client() as c:
@@ -134,8 +135,8 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        SessionToken = spec.definitions['SessionToken']
-        Credentials = spec.definitions['Credentials']
+        SessionToken = get_model('SessionToken')
+        Credentials = get_model('Credentials')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -153,7 +154,7 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_in_query)
 
-        SessionToken = spec.definitions['SessionToken']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -167,7 +168,7 @@ class Test(utils.PymTest):
         func.__name__ = 'return_token'
         app, spec = self.generate_server_app(self.yaml_in_query)
 
-        SessionToken = spec.definitions['SessionToken']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -186,8 +187,7 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        SessionToken = spec.definitions['SessionToken']
-        Credentials = spec.definitions['Credentials']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -202,8 +202,7 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_in_body)
 
-        SessionToken = spec.definitions['SessionToken']
-        Credentials = spec.definitions['Credentials']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -231,7 +230,7 @@ class Test(utils.PymTest):
 
         app, spec = self.generate_server_app(self.yaml_in_path)
 
-        SessionToken = spec.definitions['SessionToken']
+        SessionToken = get_model('SessionToken')
         func.return_value = SessionToken(token='456')
 
         with app.test_client() as c:
@@ -245,7 +244,7 @@ class Test(utils.PymTest):
 #     app, spec = self.generate_server_app(self.yaml_in_query)
 
 #     func.__name__ = 'return_token'
-#     SessionToken = spec.definitions['SessionToken']
+#     SessionToken = get_model('SessionToken')
 #     func.return_value = SessionToken(token='456')
 
 #     with app.test_client() as c:
