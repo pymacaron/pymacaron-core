@@ -13,3 +13,15 @@ class PersistentFoo():
     def save_to_db(object, *args, **kwargs):
         # Put object into storage
         pass
+
+
+# Dummy implementation of model inheritance
+class FunnyGrandad():
+
+    def roflol(self):
+        return 'roflol'
+
+class FunnyDad(FunnyGrandad):
+
+    def lol(self):
+        return 'lol'
