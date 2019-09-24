@@ -23,8 +23,8 @@ def get_model(model_name):
     raise ValidationError("Swagger spec has no definition for model %s" % model_name)
 
 
-class GenericModel(object):
-    """Instances of PyMacaron GenericModel are passed to and returned by the API
+class PyMacaronModel(object):
+    """Instances of PyMacaron Model are passed to and returned by the API
     endpoints.
 
     They encapsulate an instance of a Bravado model that holds the instance's
@@ -44,8 +44,10 @@ class GenericModel(object):
 
     def __setattr__(self, k, v):
         if k in getattr(self, '__property_names'):
+            log.debug("Setting bravado instance %s" % k)
             setattr(getattr(self, '__bravado_instance'), k, v)
         else:
+            log.debug("Setting local instance %s" % k)
             super().__setattr__(k, v)
 
 
@@ -62,13 +64,14 @@ class GenericModel(object):
         else:
             return getattr(self, k)
 
-    def __detattr__(self, k):
-        if k in self.__property_names:
-            delattr(self.__bravado_instance, k)
+    def __delattr__(self, k):
+        if k in getattr(self, '__property_names'):
+            delattr(getattr(self, '__bravado_instance'), k)
         else:
             super().__delattr__(k)
 
     def __eq__(self, other):
+        log.debug("COMPARING!!!!\n  %s\n  %s" % (self, other))
         if type(self) is not type(other):
             return False
         return getattr(self, '__bravado_instance') == getattr(other, '__bravado_instance')
@@ -114,11 +117,11 @@ class GenericModel(object):
         # Do the same recursively with every nested PyMacaron Model
         for k in getattr(self, '__property_names'):
             v = getattr(o, k)
-            if isinstance(v, GenericModel):
+            if isinstance(v, PyMacaronModel):
                 setattr(o, k, v.to_bravado())
             elif type(v) is list:
                 for i in range(len(v)):
-                    if isinstance(v[i], GenericModel):
+                    if isinstance(v[i], PyMacaronModel):
                         v[i] = v[i].to_bravado()
         return o
 
@@ -161,7 +164,7 @@ def generate_model_class(name=None, bravado_class=None, swagger_dict=None, swagg
         assert type(persist) is str
 
     # Which parents are we inheriting?
-    parents = (GenericModel, )
+    parents = (PyMacaronModel, )
     if parent_name:
         parent_class = get_function(parent_name)
         parents = parents + (parent_class, )
