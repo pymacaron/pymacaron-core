@@ -69,17 +69,28 @@ class Tests(unittest.TestCase):
         # set/get a bravado attribute
         self.assertEqual(o.s, None)
         self.assertEqual(getattr(o, 's'), None)
+
         o.s = 'bob'
         self.assertEqual(o.s, 'bob')
         self.assertEqual(getattr(o, 's'), 'bob')
+
+        # Make sure it's really the Bravado instance's attribute that was updated
+        self.assertTrue('s' not in dir(o))
+        self.assertEqual(getattr(o, '__bravado_instance').s, 'bob')
+
         o.s = None
         self.assertEqual(o.s, None)
         self.assertEqual(getattr(o, 's'), None)
 
         setattr(o, 's', 'bob')
+        self.assertTrue('s' not in dir(o))
+        self.assertEqual(getattr(o, '__bravado_instance').s, 'bob')
         self.assertEqual(o.s, 'bob')
         self.assertEqual(getattr(o, 's'), 'bob')
+
         setattr(o, 's', None)
+        self.assertTrue('s' not in dir(o))
+        self.assertEqual(getattr(o, '__bravado_instance').s, None)
         self.assertEqual(o.s, None)
         self.assertEqual(getattr(o, 's'), None)
 
@@ -93,6 +104,7 @@ class Tests(unittest.TestCase):
         self.assertTrue("Model 'Foo' has no attribute local" in str(context.exception))
 
         o.local = 'bob'
+        self.assertTrue('local' in dir(o))
         self.assertEqual(o.local, 'bob')
         self.assertEqual(getattr(o, 'local'), 'bob')
 
