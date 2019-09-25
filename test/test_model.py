@@ -224,3 +224,43 @@ class Tests(unittest.TestCase):
 
         jj = o.to_json()
         self.assertEqual(jj, j)
+
+
+    def test__update_from_dict(self):
+        foo = get_model('Foo')()
+
+        foo.update_from_dict({'s': 'bob'})
+        self.assertEqual(
+            foo.to_json(),
+            {'s': 'bob'},
+        )
+
+        foo.update_from_dict({'s': 'abc', 'i': 12})
+        self.assertEqual(
+            foo.to_json(),
+            {'s': 'abc', 'i': 12},
+        )
+
+        foo.update_from_dict({})
+        self.assertEqual(
+            foo.to_json(),
+            {'s': 'abc', 'i': 12},
+        )
+
+        foo.update_from_dict({'i': None})
+        self.assertEqual(
+            foo.to_json(),
+            {'s': 'abc'},
+        )
+
+        foo.update_from_dict({'s': None, 'i': 32}, ignore_none=True)
+        self.assertEqual(
+            foo.to_json(),
+            {'s': 'abc', 'i': 32},
+        )
+
+        foo.update_from_dict({'s': None})
+        self.assertEqual(
+            foo.to_json(),
+            {'i': 32},
+        )
