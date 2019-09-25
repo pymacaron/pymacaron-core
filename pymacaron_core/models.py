@@ -84,6 +84,7 @@ class PyMacaronModel(object):
     # Convenience methods
     #
 
+
     def update_from_dict(self, d, ignore_none=False):
         """Take a dictionary of key-values representing attribute and values to update
         in the encapsulated Bravado instance. Note that setting an attribute to
@@ -104,6 +105,7 @@ class PyMacaronModel(object):
     #
     # JSON marshal/unmarshal
     #
+
 
     def to_json(self):
         """Return a json representation of this PyMacaron object"""
