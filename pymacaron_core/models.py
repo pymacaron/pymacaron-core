@@ -79,6 +79,28 @@ class PyMacaronModel(object):
     def __repr__(self):
         return 'PyMacaron:%s:%s' % (getattr(self, '__model_name'), str(getattr(self, '__bravado_instance')))
 
+
+    #
+    # Convenience methods
+    #
+
+    def update_from_dict(self, d, ignore_none=False):
+        """Take a dictionary of key-values representing attribute and values to update
+        in the encapsulated Bravado instance. Note that setting an attribute to
+        None actually means removing it from the model instance, and thereby
+        from its json representation, except if ignore_none is True, in which case
+        the attribute is kept unchanged.
+        """
+
+        for k, v in d.items():
+            if v is None and ignore_none:
+                pass
+            elif v is None:
+                delattr(getattr(self, '__bravado_instance'), k)
+            else:
+                setattr(getattr(self, '__bravado_instance'), k, v)
+
+
     #
     # JSON marshal/unmarshal
     #
