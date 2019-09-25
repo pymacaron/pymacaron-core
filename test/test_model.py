@@ -163,6 +163,38 @@ class Tests(unittest.TestCase):
         self.assertTrue("Model 'Foo' has no attribute local" in str(context.exception))
 
 
+    def test__getitem__setitem__delitem(self):
+        o = get_model('Foo')()
+        self.assertEqual(o.s, None)
+        self.assertEqual(o['s'], None)
+
+        o['s'] = 'bob'
+        self.assertEqual(o.s, 'bob')
+        self.assertEqual(o['s'], 'bob')
+
+        o['s'] = None
+        self.assertEqual(o.s, None)
+        self.assertEqual(o['s'], None)
+
+        o['s'] = 'bob'
+        self.assertEqual(o.s, 'bob')
+        del o['s']
+        self.assertEqual(o.s, None)
+
+        # But local attributes may not be set this way
+        with self.assertRaises(Exception) as context:
+            o['local']
+        self.assertTrue("Model 'Foo' has no attribute local" in str(context.exception))
+
+        with self.assertRaises(Exception) as context:
+            o['local'] = 123
+        self.assertTrue("Model 'Foo' has no attribute local" in str(context.exception))
+
+        with self.assertRaises(Exception) as context:
+            del o['local']
+        self.assertTrue("Model 'Foo' has no attribute local" in str(context.exception))
+
+
     def test__eq(self):
         Foo = get_model('Foo')
         Bar = get_model('Bar')

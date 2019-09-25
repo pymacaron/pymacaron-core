@@ -57,12 +57,12 @@ class PyMacaronModel(object):
         if k.endswith('__property_names'):
             return getattr(self, '__property_names')
         elif k in getattr(self, '__property_names'):
-            i = getattr(self, '__bravado_instance')
-            return getattr(i, k)
+            return getattr(getattr(self, '__bravado_instance'), k)
         elif k not in dir(self):
             raise AttributeError("Model '%s' has no attribute %s" % (getattr(self, '__model_name'), k))
         else:
             return getattr(self, k)
+
 
     def __delattr__(self, k):
         if k in getattr(self, '__property_names'):
@@ -70,11 +70,31 @@ class PyMacaronModel(object):
         else:
             super().__delattr__(k)
 
+
+    def __getitem__(self, k):
+        if k not in getattr(self, '__property_names'):
+            raise AttributeError("Model '%s' has no attribute %s" % (getattr(self, '__model_name'), k))
+        return getattr(getattr(self, '__bravado_instance'), k)
+
+
+    def __setitem__(self, k, v):
+        if k not in getattr(self, '__property_names'):
+            raise AttributeError("Model '%s' has no attribute %s" % (getattr(self, '__model_name'), k))
+        setattr(getattr(self, '__bravado_instance'), k, v)
+
+
+    def __delitem__(self, k):
+        if k not in getattr(self, '__property_names'):
+            raise AttributeError("Model '%s' has no attribute %s" % (getattr(self, '__model_name'), k))
+        delattr(getattr(self, '__bravado_instance'), k)
+
+
     def __eq__(self, other):
         log.debug("COMPARING!!!!\n  %s\n  %s" % (self, other))
         if type(self) is not type(other):
             return False
         return getattr(self, '__bravado_instance') == getattr(other, '__bravado_instance')
+
 
     def __repr__(self):
         return 'PyMacaron:%s:%s' % (getattr(self, '__model_name'), str(getattr(self, '__bravado_instance')))
@@ -116,6 +136,7 @@ class PyMacaronModel(object):
             self.to_bravado(),
         )
 
+
     @classmethod
     def from_json(cls, j):
         """Take a json dictionary and return a model instance"""
@@ -148,6 +169,7 @@ class PyMacaronModel(object):
                     if isinstance(v[i], PyMacaronModel):
                         v[i] = v[i].to_bravado()
         return o
+
 
     @classmethod
     def from_bravado(cls, o):
