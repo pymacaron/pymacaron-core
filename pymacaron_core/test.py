@@ -1,18 +1,19 @@
 def return_token(*args):
-    return http_reply({'token': '123123123'}, 200)
+    # Mocked anyway
+    pass
 
 # Dummy implementation of model persistence
 class PersistentFoo():
 
     @staticmethod
-    def load_from_db(*args, **kwargs):
+    def load_from_db():
         # Load object(s) from storage
-        pass
+        return 'bob'
 
-    @staticmethod
-    def save_to_db(object, *args, **kwargs):
+    def save_to_db(object):
         # Put object into storage
-        pass
+        assert isinstance(object, PersistentFoo)
+        return 'foo'
 
 
 # Dummy implementation of model inheritance

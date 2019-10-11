@@ -148,6 +148,11 @@ class PyMacaronModel(object):
         )
         return cls.from_bravado(m)
 
+
+    def get_model_name(self):
+        """Return the name of the OpenAPI schema object describing this PyMacaron Model instance"""
+        return getattr(self, '__model_name')
+
     #
     # Methods to cast a PyMacaron Model to/from a Bravado Model
     #
@@ -219,17 +224,11 @@ def generate_model_class(name=None, bravado_class=None, swagger_dict=None, swagg
     persistence_class = None
     if persist:
         persistence_class = get_function(persist)
-        for n in ('load_from_db', 'save_to_db'):
-            if not hasattr(persistence_class, n):
-                raise PyMacaronModelException("Class %s has no static method '%s'" % (persist, n))
+        parents = parents + (persistence_class, )
 
     # Generate the instance's constructor
     def init(self, *args, **kwargs):
         self.__bravado_instance = bravado_class(*args, **kwargs)
-
-        # Add persistence - Monkey-patch the instance method save_to_db
-        if persistence_class:
-            self.save_to_db = types.MethodType(persistence_class.save_to_db, self)
 
     # And generate the model's class
     o = type(
@@ -244,12 +243,6 @@ def generate_model_class(name=None, bravado_class=None, swagger_dict=None, swagg
             '__swagger_dict': swagger_dict,
         },
     )
-
-    if persist:
-        # Monkey-patch the class method 'load_from_db'
-        def load_from_db(*args, **kwargs):
-            return persistence_class.load_from_db(*args, **kwargs)
-        o.load_from_db = load_from_db
 
     # And remember the mapping between this bravado model and its pymacaron model
     setattr(Models, name, o)
