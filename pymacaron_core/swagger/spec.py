@@ -161,14 +161,18 @@ class ApiSpec():
                 data = EndpointData(path, method)
 
                 # Which server method handles this endpoint?
-                if 'x-bind-server' not in op_spec:
+                if 'x-bind-server' not in op_spec and 'operationId' not in op_spec:
                     if 'x-no-bind-server' in op_spec:
                         # That route should not be auto-generated
                         log.info("Skipping generation of %s %s" % (method, path))
                         continue
                     else:
                         raise Exception("Swagger api defines no x-bind-server for %s %s" % (method, path))
-                data.handler_server = op_spec['x-bind-server']
+
+                if 'operationId' in op_spec:
+                    data.handler_server = op_spec['operationId']
+                else:
+                    data.handler_server = op_spec['x-bind-server']
 
                 # Make sure that endpoint only produces 'application/json'
                 if 'produces' not in op_spec:
