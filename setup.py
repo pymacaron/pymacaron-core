@@ -36,7 +36,7 @@ setup(
     author_email='erwan@lemonnier.se',
     description='Swagger + Flask + Bravado = Client/Server auto-spawning',
     install_requires=[
-        'flask==0.10.1',
+        'flask>=1.1.1',
         'bravado-core==5.13.2',
         'PyYAML==5.1.2',
     ],
