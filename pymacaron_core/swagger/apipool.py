@@ -50,14 +50,14 @@ class ApiPool():
     @property
     def current_server_name(self):
         for name, api in apis.items():
-            if api.is_server:
+            if api.is_server and name != 'ping':
                 return name
         return ''
 
     @property
     def current_server_api(self):
         for name, api in apis.items():
-            if api.is_server:
+            if api.is_server and name != 'ping':
                 return api
         return None
 
