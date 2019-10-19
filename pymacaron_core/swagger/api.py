@@ -66,11 +66,18 @@ class API():
 
         self.client_timeout = timeout
 
+        # Support versions of PyYAML with and without Loader
+        import pkg_resources
+        v = pkg_resources.get_distribution("PyYAML").version
+        yamlkwargs = {}
+        if v > '3.15':
+            yamlkwargs['Loader'] = yaml.FullLoader
+
         if yaml_path:
             log.info("Loading swagger file at %s" % yaml_path)
-            swagger_dict = yaml.load(open(yaml_path), Loader=yaml.FullLoader)
+            swagger_dict = yaml.load(open(yaml_path), **yamlkwargs)
         elif yaml_str:
-            swagger_dict = yaml.load(yaml_str, Loader=yaml.FullLoader)
+            swagger_dict = yaml.load(yaml_str, **yamlkwargs)
         else:
             raise Exception("No swagger file specified")
 
