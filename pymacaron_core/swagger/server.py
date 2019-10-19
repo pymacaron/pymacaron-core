@@ -201,7 +201,10 @@ class FlaskRequestProxy(IncomingRequest):
         self.path = request.view_args
         self.headers = request.headers
         if has_json:
-            self._json = self.request.get_json(force=True)
+            if len(self.request.get_data()) == 0:
+                self._json = {}
+            else:
+                self._json = self.request.get_json(force=True)
 
     def json(self):
         # Convert a weltkreuz ImmutableDict to a simple python dict
