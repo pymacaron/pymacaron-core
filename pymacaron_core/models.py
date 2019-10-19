@@ -44,10 +44,8 @@ class PyMacaronModel(object):
 
     def __setattr__(self, k, v):
         if k in getattr(self, '__property_names'):
-            log.debug("Setting bravado instance %s" % k)
             setattr(getattr(self, '__bravado_instance'), k, v)
         else:
-            log.debug("Setting local instance %s" % k)
             super().__setattr__(k, v)
 
 
@@ -90,7 +88,6 @@ class PyMacaronModel(object):
 
 
     def __eq__(self, other):
-        log.debug("COMPARING!!!!\n  %s\n  %s" % (self, other))
         if type(self) is not type(other):
             return False
         return getattr(self, '__bravado_instance') == getattr(other, '__bravado_instance')
