@@ -3,6 +3,8 @@ nose
 flask>=1.0.4
 flask-cors
 requests
+twine==1.15.0
+setuptools>=27.0.0
 pep8
 six
 bravado-core==5.13.2

@@ -29,8 +29,6 @@ echo "=> Running nosetests"
 nosetests
 
 echo "=> Build+Upload dist"
-python setup.py sdist upload -r pypi --version $VERSION
-
-echo "=> Tell slack"
-tell_slack "Released version $VERSION of pymacaron-core"
-
+rm -f dist/*
+python setup.py sdist --version $VERSION
+twine upload dist/*
