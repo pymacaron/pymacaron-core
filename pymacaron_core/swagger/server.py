@@ -201,9 +201,23 @@ class FlaskRequestProxy(IncomingRequest):
         self.path = request.view_args
         self.headers = request.headers
         if has_json:
+
+            # If the request contained no data, no need to analyze it further
             if len(self.request.get_data()) == 0:
                 self._json = {}
+                return
+
+            # Let's try to convert whatever content-type we got in the request to something json-like
+            ctype = self.request.content_type
+            if not ctype:
+                # If no content-type specified, assume json
+                ctype = 'application/json'
+
+            if ctype == 'application/x-www-form-urlencoded':
+                # Convert form parameters into a python dict
+                self._json = self.request.form
             else:
+                # Assuming we got a json body
                 self._json = self.request.get_json(force=True)
 
     def json(self):
