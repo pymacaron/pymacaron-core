@@ -1,11 +1,9 @@
 import logging
-import types
 from copy import deepcopy
-from bravado_core.marshal import marshal_model
+from bravado_core.marshal import marshal_schema_object
 from bravado_core.unmarshal import unmarshal_model
 import bravado_core.model
 from pymacaron_core.exceptions import ValidationError
-from pymacaron_core.exceptions import PyMacaronModelException
 from pymacaron_core.utils import get_function
 
 
@@ -127,7 +125,7 @@ class PyMacaronModel(object):
     def to_json(self):
         """Return a json representation of this PyMacaron object"""
         log.debug("Marshalling %s into json" % getattr(self, '__model_name'))
-        return marshal_model(
+        return marshal_schema_object(
             getattr(self, '__swagger_spec'),
             getattr(self, '__swagger_dict'),
             self.to_bravado(),
