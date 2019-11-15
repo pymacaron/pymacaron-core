@@ -52,10 +52,10 @@ class FlaskRequestProxy(IncomingRequest):
                     if type(v) is FileStorage:
                         # In bravado_core.request.IncomingRequest, 'files' contains a dict of param name to content
                         name = v.name
-                        content = v.read()
-                        self.files[name] = content
-                        # Since bravado drops the filename, we add it as to the files dict
+                        self.files[name] = v.read()
+                        # Since bravado drops the filename and mimetype, we explicitely add them to the files dict
                         self.files['%s_filename' % name] = v.filename
+                        self.files['%s_mimetype' % name] = v.content_type
                     else:
                         raise Exception("Support for multipart/form-data containing %s is not implemented" % type(v))
             else:
