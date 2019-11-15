@@ -26,6 +26,8 @@ class EndpointData():
     param_in_body = False
     param_in_query = False
     param_in_path = False
+    param_in_formdata = False
+
     no_params = False
 
     def __init__(self, path, method):
@@ -212,13 +214,18 @@ class ApiSpec():
                             data.param_in_query = True
                         if p['in'] == 'path':
                             data.param_in_path = True
+                        if p['in'] == 'formData':
+                            data.param_in_formdata = True
 
                     if data.param_in_path:
                         # Substitute {...} with <...> in path, to make a Flask friendly path
                         data.path = data.path.replace('{', '<').replace('}', '>')
 
                     if data.param_in_body and data.param_in_query:
-                        raise Exception("Cannot support params in both body and param (%s %s)" % (method, path))
+                        raise Exception("Does not support params in both body and param (%s %s)" % (method, path))
+
+                    if data.param_in_body and data.param_in_formdata:
+                        raise Exception("Does not support params in both body and formdata (%s %s)" % (method, path))
 
                 else:
                     data.no_params = True

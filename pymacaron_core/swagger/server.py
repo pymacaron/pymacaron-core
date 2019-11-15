@@ -8,7 +8,8 @@ from flask_cors import cross_origin
 from pymacaron_core.exceptions import PyMacaronCoreException, ValidationError, add_error_handlers
 from pymacaron_core.utils import get_function
 from pymacaron_core.models import get_model
-from bravado_core.request import IncomingRequest, unmarshal_request
+from pymacaron_core.swagger.request import FlaskRequestProxy
+from bravado_core.request import unmarshal_request
 
 
 log = logging.getLogger(__name__)
@@ -87,10 +88,11 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             call_path = api_name
         stack.top.call_path = call_path
 
-        if endpoint.param_in_body or endpoint.param_in_query:
+        if endpoint.param_in_body or endpoint.param_in_query or endpoint.param_in_formdata:
             # Turn the flask request into something bravado-core can process...
+            has_data = endpoint.param_in_body or endpoint.param_in_formdata
             try:
-                req = FlaskRequestProxy(request, endpoint.param_in_body)
+                req = FlaskRequestProxy(request, has_data)
             except BadRequest:
                 ee = error_callback(ValidationError("Cannot parse json data: have you set 'Content-Type' to 'application/json'?"))
                 return _responsify(api_spec, ee, 400)
@@ -126,6 +128,13 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             args.append(body)
 
         if endpoint.param_in_query:
+            kwargs.update(parameters)
+
+        if endpoint.param_in_formdata:
+            for k in list(path_params.keys()):
+                del parameters[k]
+            log.debug("Looking at parameters: %s" % parameters)
+
             kwargs.update(parameters)
 
         result = handler_func(*args, **kwargs)
@@ -182,44 +191,3 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         handler_wrapper = global_decorator(handler_wrapper)
 
     return handler_wrapper
-
-
-class FlaskRequestProxy(IncomingRequest):
-    """Take a flask.request object and make it look like a
-    bravado_core.request.IncomingRequest"""
-
-    path = None
-    query = None
-    form = None
-    headers = None
-    files = None
-    _json = None
-
-    def __init__(self, request, has_json):
-        self.request = request
-        self.query = request.args
-        self.path = request.view_args
-        self.headers = request.headers
-        if has_json:
-
-            # If the request contained no data, no need to analyze it further
-            if len(self.request.get_data()) == 0:
-                self._json = {}
-                return
-
-            # Let's try to convert whatever content-type we got in the request to something json-like
-            ctype = self.request.content_type
-            if not ctype:
-                # If no content-type specified, assume json
-                ctype = 'application/json'
-
-            if ctype == 'application/x-www-form-urlencoded':
-                # Convert form parameters into a python dict
-                self._json = self.request.form
-            else:
-                # Assuming we got a json body
-                self._json = self.request.get_json(force=True)
-
-    def json(self):
-        # Convert a weltkreuz ImmutableDict to a simple python dict
-        return self._json
