@@ -133,8 +133,6 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         if endpoint.param_in_formdata:
             for k in list(path_params.keys()):
                 del parameters[k]
-            log.debug("Looking at parameters: %s" % parameters)
-
             kwargs.update(parameters)
 
         result = handler_func(*args, **kwargs)

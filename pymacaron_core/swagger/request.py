@@ -37,8 +37,6 @@ class FlaskRequestProxy(IncomingRequest):
                 # If no content-type specified, assume json
                 ctype = 'application/json'
 
-            log.debug("Request content_type = [%s]" % ctype)
-
             if ctype.startswith('application/x-www-form-urlencoded'):
                 # Store the request's form
                 self._json = self.request.form.to_dict()
