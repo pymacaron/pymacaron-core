@@ -27,6 +27,12 @@ if not version:
 
 print("version: %s" % version)
 
+# read the contents of the README file
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 setup(
     name='pymacaron-core',
     version=version,
@@ -34,7 +40,9 @@ setup(
     license='BSD',
     author='Erwan Lemonnier',
     author_email='erwan@lemonnier.se',
-    description='Swagger + Flask + Bravado = Client/Server auto-spawning',
+    description='Swagger + Flask + Bravado-core = auto-spawning of API server, client and data objects for Pymacaron',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     install_requires=[
         'flask>=1.0.4',
         'bravado-core==5.13.2',

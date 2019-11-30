@@ -1,5 +1,4 @@
-PyMacaron Core
-==============
+# PyMacaron Core
 
 A python framework that takes the Swagger/OpenAPI representation of a json REST
 api and spawns a Flask server implementing it, as well as a client library to
@@ -11,8 +10,7 @@ framework. If your intent is to code REST apis based on Flask and Swagger,
 [pymacaron](https://github.com/pymacaron/pymacaron)
 offers a lot of extra goodies compared to 'pymacaron-core'.
 
-Purpose: easy micro-services
-----------------------------
+## Purpose: micro-services made easy
 
 A typical Python micro-service will expose a REST api where each api endpoint
 is implemented by a Python method. This method will in turn call other
@@ -43,31 +41,28 @@ run a micro-service in Python:
 PyMacaron Core relies on bravado-core for marshaling/unmarshaling and format
 validation.
 
-Disclaimer
-----------
+## Disclaimer
 
 PyMacaron Core is actively used in production, but undergoes major refactorings
 on a regular basis. Its API is subject to change. It has been tested on python
-2.7 and 3.4.
+2.7, 3.4 and 3.5.
 
 Asynchronous support based on grequests was dropped after version 0.0.92
 
-Usage
------
+## Usage
 
 First, load the Swagger specifications of all the services your server will use:
 
-.. code-block:: python
-
+```
     from pymacaron_core.swagger import ApiPool
 
     ApiPool.add('public', yaml_path='public.yaml')
     ApiPool.add('login', yaml_path='login.yaml')
     ApiPool.add('user', yaml_path='user.yaml', timeout=20)
+```
 
 
-Generating Server
-=================
+## Generating Server
 
 In the Swagger spec describing the server side, each endpoint that you want to
 have auto-generated into the Flask app should have the 'x-bind-server'
@@ -77,8 +72,7 @@ of the endpoint's reponses (See bravado-core for details):
 
 Let's implement a login endpoint as an example:
 
-.. code-block:: yaml
-
+```
     /login:
       post:
         summary: Login a user.
@@ -101,24 +95,23 @@ Let's implement a login endpoint as an example:
             description: Error
             schema:
               $ref: '#/definitions/Error'
-
+```
 
 Populate a Flask app with server endpoints for the 'login' api:
 
-.. code-block:: python
-
+```
     from flask import Flask
     from pymacaron_core.swagger import ApiPool
 
     app = Flask(__name__)
     ApiPool.add('login', yaml_path='login.yaml')
     ApiPool.login.spawn_api(app)
+```
 
 To implement the 'do_login' endpoint, the file 'myserver/handlers' should
 contain:
 
-.. code-block:: python
-
+```
     from flask import jsonify
     from pymacaron_core.swagger.apipool import ApiPool
     from pymacaron_core.exceptions import PyMacaronCoreException
@@ -135,17 +128,15 @@ contain:
             r = jsonify({'error': 'INVALID_CREDENTIALS'})
             r.status_code = 401
             return r
+```
 
-
-Decorating server methods:
-==========================
+## Decorating server methods:
 
 You can tell PyMacaron Core to apply a decorator to all server methods, which
 comes in handy for gathering analytics or crash data. To do that in the example
 above, modify the server code to be like:
 
-.. code-block:: python
-
+```
     from flask import Flask
     from pymacaron_core.swagger import ApiPool
 
@@ -157,10 +148,9 @@ above, modify the server code to be like:
         ...
 
     ApiPool.login.spawn_api(app, decorator=analytics_wrapper)
+```
 
-
-Generating Client
-=================
+## Generating Client
 
 In the Swagger spec describing the server you want to call, each endpoint that
 you want to have auto-generated into the client library should have the
@@ -168,8 +158,7 @@ you want to have auto-generated into the client library should have the
 argument an object modelled on the endpoint's argument, and return an object
 matching that of the endpoint's reponses (See bravado-core for details):
 
-.. code-block:: yaml
-
+```
     /version:
       get:
         summary: Return the API''s version.
@@ -181,22 +170,22 @@ matching that of the endpoint's reponses (See bravado-core for details):
             description: API version
             schema:
               $ref: '#/definitions/Version'
+```
 
 Calling that server now looks like (assuming the server api is called 'public'):
 
-.. code-block:: python
-
+```
     from pymacaron_core.swagger import ApiPool
 
     # Call the /version endpoint on the host:port specified in the Swagger
     # spec, and return a Version object:
     version = ApiPool.public.client.version()
+```
 
 The client method passes path and query parameters as kwarg arguments. The POST request body is passed
 as an instance of an ApiPool model. For example, to pass a request body:
 
-.. code-block:: python
-
+```
    # To call
    # 'POST v1/item' with the body {name: 'foo', surname: 'bar'}
    # where the endpoint was defined with:
@@ -215,11 +204,11 @@ as an instance of an ApiPool model. For example, to pass a request body:
            surname='bar'
        )
    )
+```
 
 For example, to pass query and path arguments:
 
-.. code-block:: python
-
+```
    # Assuming the endpoint:
    # /v1/user/<id>:
    #   get:
@@ -236,6 +225,7 @@ For example, to pass query and path arguments:
        id='user_9327234',
        uppercase=True
    )
+```
 
 All client methods support the following extra kwarg parameters:
 
@@ -252,8 +242,7 @@ All client methods support the following extra kwarg parameters:
 
 As in:
 
-.. code-block:: python
-
+```
     results = ApiPool.search.client.search(
         query=query_words,
         page=0,
@@ -263,17 +252,15 @@ As in:
         },
         max_attempts=2
     )
+```
 
-
-Authentication
-==============
+## Authentication
 
 TODO: describe the 'x-decorate-request' and 'x-decorate-server' attributes of
 the swagger spec + give example of using them to add-on authentication support.
 
 
-Handling Errors
-===============
+## Handling Errors
 
 PyMacaron Core may raise exceptions, for example if the server stub gets an
 invalid request according to the swagger specification.
@@ -283,8 +270,7 @@ object model fitting that of the loaded swagger specification. Instead, you
 should provide the apipool with a callback to format exceptions into whatever
 object you wish your api to return. Something like:
 
-.. code-block:: python
-
+```
     from pymacaron_core.swagger import ApiPool
 
     def my_error_formatter(e):
@@ -295,12 +281,12 @@ object you wish your api to return. Something like:
         )
 
     ApiPool.add('public', yaml_path='public.yaml', error_callback=my_error_formatter)
+```
 
 Internal errors raised by PyMacaron Core are instances of pymacaron_core.exceptions.PyMacaronCoreException
 
 
-Model persistence
-=================
+## Model persistence
 
 You can plug-in object persistence into chosen models by way of the swagger
 file.
@@ -308,8 +294,7 @@ file.
 Specify the 'x-persist' attributes in the swagger definition of models to make
 persistent, with as a value the package path to a custom class, like this:
 
-.. code-block:: yaml
-
+```
     definitions:
       Foo:
         type: object
@@ -320,13 +305,12 @@ persistent, with as a value the package path to a custom class, like this:
             type: string
             format: foo
             description: bar
-
+```
 
 The persistence class must implement the static methods 'load_from_db' and
 'save_to_db', like in:
 
-.. code-block:: python
-
+```
     class PersistentFoo():
 
         @staticmethod
@@ -338,24 +322,24 @@ The persistence class must implement the static methods 'load_from_db' and
         def save_to_db(object, *args, **kwargs):
             # Put object into storage
             pass
+```
 
 PyMacaron Core will inject the methods 'save_to_db' and 'load_from_db' into the
 corresponding model class and instances, so you can write:
 
-.. code-block:: python
-
+```
     # Retrieve instance Foo with id 12345 from storage
     f = api.model.Foo.load_from_db(id='12345')
 
     # Put this instance of Foo into storage
     f.save_to_db()
+```
 
 The details of how to store the objects, as well as which arguments to pass the
 methods and what they return, is all up to you.
 
 
-Call ID and Call Path
-=====================
+## Call ID and Call Path
 
 If you have multiple micro-services passing objects among them, it is
 convenient to mark all responses initiated by a given call to your public
@@ -374,8 +358,7 @@ by a given public API call, for analytic purposes.
 
 To access the call ID and call path:
 
-.. code-block:: python
-
+```
     try:
         from flask import _app_ctx_stack as stack
     except ImportError:
@@ -390,11 +373,18 @@ To access the call ID and call path:
         # call_path is a '.'-separated list of api names
         # For example 'public.user.login' indicates we are in server 'login',
         # by way of servers 'user' then 'public'.
+```
 
-
-Install
+## Install
 -------
 
-.. code-block:: shell
-
+```
     pip install pymacaron-core
+```
+
+## Author
+
+Erwan Lemonnier<br/>
+[github.com/pymacaron](https://github.com/pymacaron)</br>
+[github.com/erwan-lemonnier](https://github.com/erwan-lemonnier)<br/>
+[www.linkedin.com/in/erwan-lemonnier/](https://www.linkedin.com/in/erwan-lemonnier/)
