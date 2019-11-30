@@ -5,10 +5,9 @@ api and spawns a Flask server implementing it, as well as a client library to
 call that api.
 
 'pymacaron-core' is an underlying layer for the
-[pymacaron](https://github.com/pymacaron/pymacaron)
-framework. If your intent is to code REST apis based on Flask and Swagger,
-[pymacaron](https://github.com/pymacaron/pymacaron)
-offers a lot of extra goodies compared to 'pymacaron-core'.
+[pymacaron](http://pymacaron.com) framework. If your intent is to code REST
+apis based on Flask and Swagger, [pymacaron](http://pymacaron.com) offers a lot
+of extra goodies compared to 'pymacaron-core'.
 
 ## Purpose: micro-services made easy
 
