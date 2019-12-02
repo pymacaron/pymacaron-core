@@ -20,9 +20,9 @@ if not version:
         if os.path.isfile(path_pkg_info):
             with open(path_pkg_info, 'r')as f:
                 for l in f.readlines():
-                    if 'Version' in l:
-                        print("l: [%s]" % l)
+                    if 'Version:' in l:
                         _, version = l.split(' ')
+                        version = version.strip()
         else:
             print("WARNING: cannot set version in custom setup.py")
 
