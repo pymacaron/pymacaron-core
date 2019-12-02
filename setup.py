@@ -21,6 +21,7 @@ if not version:
             with open(path_pkg_info, 'r')as f:
                 for l in f.readlines():
                     if 'Version' in l:
+                        print("l: [%s]" % l)
                         _, version = l.split(' ')
         else:
             print("WARNING: cannot set version in custom setup.py")
