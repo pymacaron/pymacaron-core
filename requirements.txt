@@ -8,7 +8,7 @@ setuptools>=27.0.0
 pep8
 six
 bravado-core==5.13.2
-PyYAML==5.1.2
+PyYAML>=5.1.2
 responses
 gevent
 idna<2.7,>=2.5
