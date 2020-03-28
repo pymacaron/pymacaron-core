@@ -1,6 +1,7 @@
 import jsonschema
 import logging
 import uuid
+import os
 from functools import wraps
 from werkzeug.exceptions import BadRequest
 from flask import request, jsonify
@@ -74,6 +75,9 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         log.info(" ")
         log.info(" ")
 
+        if os.environ.get('PYM_DEBUG', None) == '1':
+            log.debug("PYM_DEBUG: Request headers are: %s" % request.headers)
+
         # Get caller's pym-call-id or generate one
         call_id = request.headers.get('PymCallID', None)
         if not call_id:
@@ -134,6 +138,9 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
             for k in list(path_params.keys()):
                 del parameters[k]
             kwargs.update(parameters)
+
+        if os.environ.get('PYM_DEBUG', None) == '1':
+            log.debug("PYM_DEBUG: Request args are: [args: %s] [kwargs: %s]" % (args, kwargs))
 
         result = handler_func(*args, **kwargs)
 
