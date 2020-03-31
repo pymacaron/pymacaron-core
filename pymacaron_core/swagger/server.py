@@ -76,7 +76,7 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
         log.info(" ")
 
         if os.environ.get('PYM_DEBUG', None) == '1':
-            log.debug("PYM_DEBUG: Request headers are: %s" % request.headers)
+            log.debug("PYM_DEBUG: Request headers are: %s" % dict(request.headers))
 
         # Get caller's pym-call-id or generate one
         call_id = request.headers.get('PymCallID', None)
