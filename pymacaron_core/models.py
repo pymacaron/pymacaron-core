@@ -150,10 +150,8 @@ class PyMacaronModel(object):
         datetimes = {}
         if keep_datetime:
             for k in list(j.keys()):
-                log.debug("type(%s) = %s" % (k, type(j[k])))
                 if type(j[k]) is datetime:
                     datetimes[k] = j[k]
-                    log.debug("deleting k %s" % k)
                     del j[k]
 
         m = unmarshal_model(
@@ -165,8 +163,6 @@ class PyMacaronModel(object):
         if datetimes:
             for k in datetimes:
                 setattr(m, k, datetimes[k])
-
-        log.info("Object from_json is %s" % m)
 
         return cls.from_bravado(m)
 
