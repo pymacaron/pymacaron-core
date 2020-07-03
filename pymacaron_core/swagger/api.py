@@ -133,9 +133,9 @@ class API():
         return object.to_json()
 
 
-    def json_to_model(self, model_name, j, validate=False):
+    def json_to_model(self, model_name, j, validate=False, keep_datetime=False):
         """Take a json strust and a model name, and return a model instance"""
         if validate:
             self.api_spec.validate(model_name, j)
         o = getattr(self.model, model_name)
-        return o.from_json(j)
+        return o.from_json(j, keep_datetime=keep_datetime)

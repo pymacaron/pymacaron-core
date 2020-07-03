@@ -135,9 +135,9 @@ class ApiSpec():
         return object.to_json()
 
 
-    def json_to_model(self, model_name, j):
+    def json_to_model(self, model_name, j, keep_datetime=False):
         """Take a json struct and a model name, and return a model instance"""
-        cls = get_model(model_name)
+        cls = get_model(model_name, keep_datetime=keep_datetime)
         return cls.from_json(j)
 
 

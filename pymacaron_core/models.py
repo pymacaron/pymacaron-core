@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from copy import deepcopy
 from bravado_core.marshal import marshal_schema_object
 from bravado_core.unmarshal import unmarshal_model
@@ -122,25 +123,51 @@ class PyMacaronModel(object):
     #
 
 
-    def to_json(self):
-        """Return a json representation of this PyMacaron object"""
+    def to_json(self, keep_datetime=False):
+        """Return a json representation of this PyMacaron object - If keep_datetime is set,
+        will keep attributes that are datetime unchanged.
+        """
         log.debug("Marshalling %s into json" % getattr(self, '__model_name'))
-        return marshal_schema_object(
+        datetimes = {}
+        if keep_datetime:
+            for k in self.__property_names:
+                if hasattr(self, k) and type(getattr(self, k)) is datetime:
+                    datetimes[k] = getattr(self, k)
+        j = marshal_schema_object(
             getattr(self, '__swagger_spec'),
             getattr(self, '__swagger_dict'),
             self.to_bravado(),
         )
+        if datetimes:
+            j.update(datetimes)
+        return j
 
 
     @classmethod
-    def from_json(cls, j):
+    def from_json(cls, j, keep_datetime=False):
         """Take a json dictionary and return a model instance"""
         log.debug("Unmarshalling json into %s" % getattr(cls, '__model_name'))
+        datetimes = {}
+        if keep_datetime:
+            for k in list(j.keys()):
+                log.debug("type(%s) = %s" % (k, type(j[k])))
+                if type(j[k]) is datetime:
+                    datetimes[k] = j[k]
+                    log.debug("deleting k %s" % k)
+                    del j[k]
+
         m = unmarshal_model(
             getattr(cls, '__swagger_spec'),
             getattr(cls, '__swagger_dict'),
             j
         )
+
+        if datetimes:
+            for k in datetimes:
+                setattr(m, k, datetimes[k])
+
+        log.info("Object from_json is %s" % m)
+
         return cls.from_bravado(m)
 
 
