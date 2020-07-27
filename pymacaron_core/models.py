@@ -118,6 +118,11 @@ class PyMacaronModel(object):
                 setattr(getattr(self, '__bravado_instance'), k, v)
 
 
+    def clone(self):
+        """Return a clone of self"""
+        j = self.to_json()
+        return self.__class__.from_json(j)
+
     #
     # JSON marshal/unmarshal
     #
