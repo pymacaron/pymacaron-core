@@ -58,8 +58,37 @@ def _responsify(api_spec, error, status):
     return r
 
 
+def log_endpoint(f, endpoint):
+    """A decorator that adds start and stop logging around an endpoint"""
+
+    @wraps(f)
+    def decorator(*args, **kwargs):
+
+        from pymacaron.log import pymlogger
+
+        pymlog = pymlogger(__name__)
+        pymlog.info(" ")
+        pymlog.info(" ")
+        pymlog.info("=> INCOMING REQUEST %s %s -> %s" % (endpoint.method, endpoint.path, f.__name__))
+        pymlog.info(" ")
+        pymlog.info(" ")
+
+        res = f(*args, **kwargs)
+
+        pymlog.info("<= DONE %s %s -> %s" % (endpoint.method, endpoint.path, f.__name__))
+        pymlog.info(" ")
+        pymlog.info(" ")
+
+        return res
+
+    return decorator
+
+
 def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_callback, global_decorator):
     """Generate a handler method for the given url method+path and operation"""
+
+    # Add logging around the handler function
+    handler_func = log_endpoint(handler_func, endpoint)
 
     # Decorate the handler function, if Swagger spec tells us to
     if endpoint.decorate_server:
@@ -68,13 +97,6 @@ def _generate_handler_wrapper(api_name, api_spec, endpoint, handler_func, error_
 
     @wraps(handler_func)
     def handler_wrapper(**path_params):
-        log.info(" ")
-        log.info(" ")
-        log.info("=> INCOMING REQUEST %s %s -> %s" %
-                 (endpoint.method, endpoint.path, handler_func.__name__))
-        log.info(" ")
-        log.info(" ")
-
         if os.environ.get('PYM_DEBUG', None) == '1':
             log.debug("PYM_DEBUG: Request headers are: %s" % dict(request.headers))
 
