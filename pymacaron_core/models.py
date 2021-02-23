@@ -154,7 +154,6 @@ class PyMacaronModel(object):
         datetimes = {}
         if keep_datetime:
             for k in list(j.keys()):
-                log.info("k %s (%s) has type %s" % (k, j[k], type(j[k])))
                 if j[k].__class__.__name__ in ('datetime', 'DatetimeWithNanoseconds'):
                     datetimes[k] = j[k]
                     del j[k]
