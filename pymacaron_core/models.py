@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from copy import deepcopy
 from bravado_core.marshal import marshal_schema_object
 from bravado_core.unmarshal import unmarshal_model
@@ -136,7 +135,7 @@ class PyMacaronModel(object):
         datetimes = {}
         if keep_datetime:
             for k in self.__property_names:
-                if hasattr(self, k) and type(getattr(self, k)) is datetime:
+                if hasattr(self, k) and getattr(self, k).__class__.__name__ in ('datetime', 'DatetimeWithNanoseconds'):
                     datetimes[k] = getattr(self, k)
         j = marshal_schema_object(
             getattr(self, '__swagger_spec'),
@@ -155,7 +154,8 @@ class PyMacaronModel(object):
         datetimes = {}
         if keep_datetime:
             for k in list(j.keys()):
-                if type(j[k]) is datetime:
+                log.info("k %s (%s) has type %s" % (k, j[k], type(j[k])))
+                if j[k].__class__.__name__ in ('datetime', 'DatetimeWithNanoseconds'):
                     datetimes[k] = j[k]
                     del j[k]
 
