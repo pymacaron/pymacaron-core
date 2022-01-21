@@ -1,4 +1,12 @@
-# PyMacaron Core
+# DEPRECATED - PyMacaron Core
+
+DEPRECATED!!!! pymacaron does not use Bravado anymore. pymacaron-core is therefore deprecated and won't be maintained.
+
+
+
+
+
+
 
 A python framework that takes the Swagger/OpenAPI representation of a json REST
 api and spawns a Flask server implementing it, as well as a client library to
